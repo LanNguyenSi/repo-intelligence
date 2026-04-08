@@ -1,0 +1,1114 @@
+'use client';
+
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useLocale, interpolate } from '@/lib/i18n';
+import { AppShell } from '@/components/AppShell';
+import { PRScanButton } from '@/components/PRScanButton';
+import { SeverityBreakdown } from '@/components/SeverityBreakdown';
+import { AdvisoryList } from '@/components/AdvisoryList';
+import { LicenseList } from '@/components/LicenseList';
+import { RiskTimeline } from '@/components/RiskTimeline';
+import { DependencyTable } from '@/components/DependencyTable';
+import { Pagination, usePagination } from '@/components/Pagination';
+import { CIHealthTab } from '@/components/dashboard/CIHealthTab';
+
+interface ScanSummary {
+  id: string;
+  scannedAt: string;
+  status: string;
+  riskScore: number;
+  counts: {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+}
+
+interface RepoItem {
+  id: string;
+  fullName: string;
+  owner: string;
+  name: string;
+  private: boolean;
+  language: string | null;
+  lastScannedAt: string | null;
+  latestScan: ScanSummary | null;
+}
+
+interface ScanDetail {
+  id: string;
+  scannedAt: string;
+  status: string;
+  riskScore: number;
+  counts: ScanSummary['counts'];
+  advisories: {
+    id: string;
+    ghsaId: string;
+    cveId: string | null;
+    severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+    summary: string;
+    packageName: string;
+    ecosystem: string;
+    vulnerableRange: string | null;
+    fixedVersion: string | null;
+    publishedAt: string | null;
+    url: string | null;
+  }[];
+}
+
+interface UnsupportedEcosystem {
+  ecosystem: string;
+  label: string;
+}
+
+interface LicenseDetail {
+  scanId: string;
+  scannedAt?: string;
+  licenseCount: number;
+  conflictCount: number;
+  summary: Record<string, number>;
+  licenses: {
+    id: string;
+    packageName: string;
+    version: string;
+    license: string;
+    isCompatible: boolean;
+    policyViolation: boolean;
+  }[];
+  unsupportedEcosystem?: UnsupportedEcosystem;
+}
+
+interface ScanHistoryPoint {
+  scannedAt: string;
+  riskScore: number;
+  cveCount: number;
+  criticalCount: number;
+  highCount: number;
+}
+
+type DepStatus = 'UP_TO_DATE' | 'OUTDATED' | 'MAJOR_BEHIND' | 'DEPRECATED' | 'UNKNOWN';
+
+interface DepSummary {
+  total: number;
+  upToDate: number;
+  outdated: number;
+  majorBehind: number;
+  deprecated: number;
+  unknown: number;
+}
+
+interface DepEntry {
+  id: string;
+  name: string;
+  installedVersion: string;
+  latestVersion: string;
+  ageInDays: number | null;
+  status: DepStatus;
+  isDeprecated: boolean;
+  updateAvailable: boolean;
+}
+
+interface DepsDetail {
+  scanId: string;
+  scannedAt?: string;
+  summary: DepSummary;
+  dependencies: DepEntry[];
+  unsupportedEcosystem?: UnsupportedEcosystem;
+}
+
+type ActiveTab = 'cve' | 'license' | 'deps' | 'history' | 'ci';
+type SortKey = 'name' | 'risk' | 'language';
+
+interface DashboardClientProps {
+  repos: RepoItem[];
+  initialRepoId?: string | null;
+  ciEnabledRepoIds?: string[];
+}
+
+const riskColor = (score: number) =>
+  score >= 70
+    ? 'text-red-400'
+    : score >= 40
+      ? 'text-orange-400'
+      : score >= 10
+        ? 'text-yellow-400'
+        : 'text-emerald-400';
+
+export function DashboardClient({ repos: initialRepos, initialRepoId, ciEnabledRepoIds = [] }: DashboardClientProps) {
+  const { t } = useLocale();
+  const [repos, setRepos] = useState<RepoItem[]>(initialRepos);
+  const [selectedRepoId, setSelectedRepoId] = useState<string | null>(
+    initialRepoId ? initialRepos.find((r) => r.id === initialRepoId)?.id ?? null : null,
+  );
+
+  const ciEnabled = selectedRepoId ? ciEnabledRepoIds.includes(selectedRepoId) : false;
+
+  const TABS: { key: ActiveTab; label: string }[] = [
+    { key: 'cve', label: t['dashboard.tab.cve'] },
+    { key: 'license', label: t['dashboard.tab.license'] },
+    { key: 'deps', label: t['dashboard.tab.deps'] },
+    { key: 'history', label: t['dashboard.tab.history'] },
+    ...(ciEnabled ? [{ key: 'ci' as ActiveTab, label: t['dashboard.tab.ci'] }] : []),
+  ];
+  const [scanDetail, setScanDetail] = useState<ScanDetail | null>(null);
+  const [licenseDetail, setLicenseDetail] = useState<LicenseDetail | null>(null);
+  const [depsDetail, setDepsDetail] = useState<DepsDetail | null>(null);
+  const [scanHistory, setScanHistory] = useState<ScanHistoryPoint[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [scanningLicense, setScanningLicense] = useState(false);
+  const [scanningDeps, setScanningDeps] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('cve');
+  const [dependabotDisabled, setDependabotDisabled] = useState(false);
+  const [enablingDependabot, setEnablingDependabot] = useState(false);
+
+  const [sbomError, setSbomError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportingBundle, setExportingBundle] = useState(false);
+
+  // Actions dropdown
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!actionsOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) {
+        setActionsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [actionsOpen]);
+
+  // Scan all repos
+  const [scanAllRunning, setScanAllRunning] = useState(false);
+  const [scanAllChecking, setScanAllChecking] = useState(false);
+  const [scanAllProgress, setScanAllProgress] = useState({ current: 0, total: 0 });
+  const scanAllCancelRef = useRef(false);
+
+  // Dependabot pre-check modal
+  const [dependabotModal, setDependabotModal] = useState<{
+    disabled: Array<{ repoId: string; fullName: string }>;
+    total: number;
+  } | null>(null);
+  const [enablingAll, setEnablingAll] = useState(false);
+
+  // Filter, sort & pagination
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<SortKey>('name');
+  const [repoPage, setRepoPage] = useState(1);
+  const REPO_PAGE_SIZE = 20;
+  const selectedRepo = repos.find((repo) => repo.id === selectedRepoId) ?? null;
+  const detailRequestRef = useRef(0);
+  const selectedRepoIdRef = useRef<string | null>(selectedRepoId);
+  const hydratedRepoIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setRepos(initialRepos);
+    setSelectedRepoId((current) => {
+      if (initialRepoId && initialRepos.some((repo) => repo.id === initialRepoId)) {
+        return initialRepoId;
+      }
+      if (current && initialRepos.some((repo) => repo.id === current)) {
+        return current;
+      }
+      return null;
+    });
+  }, [initialRepoId, initialRepos]);
+
+  useEffect(() => {
+    setRepoPage(1);
+  }, [search, sortBy]);
+
+  useEffect(() => {
+    selectedRepoIdRef.current = selectedRepoId;
+  }, [selectedRepoId]);
+
+  // Uses stable state setters and refs; keeping this callback stable avoids duplicate initial loads.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadRepoDetails = useCallback(async (repo: RepoItem) => {
+    const requestId = ++detailRequestRef.current;
+    setSelectedRepoId(repo.id);
+    setScanDetail(null);
+    setLicenseDetail(null);
+    setDepsDetail(null);
+    setScanHistory([]);
+    setDependabotDisabled(false);
+    setSbomError(null);
+    setExportError(null);
+    setLoadingDetail(true);
+    setLoadingHistory(true);
+    // Reset CI tab if new repo has no CI data
+    setActiveTab((current) => (current === 'ci' && !ciEnabledRepoIds.includes(repo.id) ? 'cve' : current));
+    try {
+      const [scan, license, deps, history] = await Promise.all([
+        fetchScanDetail(repo.id),
+        fetchLicenseDetail(repo.id),
+        fetchDepsDetail(repo.id),
+        fetchScanHistory(repo.id),
+      ]);
+
+      applyScanSummary(repo.id, scan);
+      applyLastScannedAt(repo.id, license.scannedAt);
+      applyLastScannedAt(repo.id, deps.scannedAt);
+
+      if (detailRequestRef.current !== requestId) return;
+
+      setScanDetail(scan);
+      setLicenseDetail(toVisibleLicenseDetail(license));
+      setDepsDetail(toVisibleDepsDetail(deps));
+      setScanHistory(history);
+    } finally {
+      if (detailRequestRef.current === requestId) {
+        setLoadingDetail(false);
+        setLoadingHistory(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!initialRepoId || selectedRepoId !== initialRepoId) return;
+    const repo = repos.find((item) => item.id === initialRepoId);
+    if (!repo || hydratedRepoIdRef.current === repo.id) return;
+
+    hydratedRepoIdRef.current = repo.id;
+    void loadRepoDetails(repo);
+  }, [initialRepoId, loadRepoDetails, repos, selectedRepoId]);
+
+  function updateRepo(repoId: string, updater: (repo: RepoItem) => RepoItem) {
+    setRepos((current) => current.map((repo) => (repo.id === repoId ? updater(repo) : repo)));
+  }
+
+  function applyScanSummary(repoId: string, detail: ScanDetail | null) {
+    if (!detail) return;
+    updateRepo(repoId, (repo) => ({
+      ...repo,
+      lastScannedAt: detail.scannedAt,
+      latestScan: {
+        id: detail.id,
+        scannedAt: detail.scannedAt,
+        status: detail.status,
+        riskScore: detail.riskScore,
+        counts: detail.counts,
+      },
+    }));
+  }
+
+  function applyLastScannedAt(repoId: string, scannedAt?: string) {
+    if (!scannedAt) return;
+    updateRepo(repoId, (repo) => ({ ...repo, lastScannedAt: scannedAt }));
+  }
+
+  function toVisibleLicenseDetail(data: LicenseDetail): LicenseDetail | null {
+    return Boolean(data.scanId) || data.unsupportedEcosystem ? data : null;
+  }
+
+  function toVisibleDepsDetail(data: DepsDetail): DepsDetail | null {
+    return Boolean(data.scanId) || data.unsupportedEcosystem ? data : null;
+  }
+
+  async function fetchScanDetail(repoId: string) {
+    const res = await fetch(`/api/scan?repoId=${repoId}`);
+    const data = (await res.json()) as { scan: ScanDetail | null };
+    return data.scan;
+  }
+
+  async function fetchLicenseDetail(repoId: string) {
+    const res = await fetch(`/api/license?repoId=${repoId}`);
+    return (await res.json()) as LicenseDetail;
+  }
+
+  async function fetchDepsDetail(repoId: string) {
+    const res = await fetch(`/api/deps?repoId=${repoId}`);
+    return (await res.json()) as DepsDetail;
+  }
+
+  async function fetchScanHistory(repoId: string) {
+    const res = await fetch(`/api/history?repoId=${repoId}&limit=30`);
+    const data = (await res.json()) as { history: ScanHistoryPoint[] };
+    return data.history ?? [];
+  }
+
+  const filteredRepos = useMemo(() => {
+    let list = repos;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.fullName.toLowerCase().includes(q) ||
+          (r.language?.toLowerCase().includes(q) ?? false),
+      );
+    }
+    return [...list].sort((a, b) => {
+      if (sortBy === 'risk') {
+        const aScore = a.latestScan?.riskScore ?? -1;
+        const bScore = b.latestScan?.riskScore ?? -1;
+        return bScore - aScore;
+      }
+      if (sortBy === 'language') {
+        return (a.language ?? '').localeCompare(b.language ?? '');
+      }
+      return a.fullName.localeCompare(b.fullName);
+    });
+  }, [repos, search, sortBy]);
+
+  const paginatedRepos = usePagination(filteredRepos, repoPage, REPO_PAGE_SIZE);
+
+  async function handleSync() {
+    setSyncing(true);
+    try {
+      await fetch('/api/repos/sync', { method: 'POST' });
+      window.location.reload();
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleCveScan(repo: RepoItem) {
+    setScanning(true);
+    setSelectedRepoId(repo.id);
+    setScanDetail(null);
+    setDependabotDisabled(false);
+    setActiveTab('cve');
+    try {
+      const res = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoId: repo.id }),
+      });
+      if (!res.ok) throw new Error('Scan fehlgeschlagen');
+      const data = (await res.json()) as { scanId: string; dependabotDisabled?: boolean };
+      if (data.dependabotDisabled) {
+        setDependabotDisabled(true);
+      } else {
+        const requestId = ++detailRequestRef.current;
+        const [scan, history] = await Promise.all([
+          fetchScanDetail(repo.id),
+          fetchScanHistory(repo.id),
+        ]);
+        applyScanSummary(repo.id, scan);
+        if (detailRequestRef.current === requestId) {
+          setScanDetail(scan);
+          setScanHistory(history);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function handleEnableDependabot(repo: RepoItem) {
+    setEnablingDependabot(true);
+    try {
+      const res = await fetch('/api/dependabot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoId: repo.id }),
+      });
+      if (res.ok) {
+        setDependabotDisabled(false);
+        await handleCveScan(repo);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEnablingDependabot(false);
+    }
+  }
+
+  async function handleLicenseScan(repo: RepoItem) {
+    setScanningLicense(true);
+    setSelectedRepoId(repo.id);
+    setActiveTab('license');
+    try {
+      await fetch('/api/license', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoId: repo.id }),
+      });
+      const detail = await fetchLicenseDetail(repo.id);
+      applyLastScannedAt(repo.id, detail.scannedAt);
+      setLicenseDetail(toVisibleLicenseDetail(detail));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setScanningLicense(false);
+    }
+  }
+
+  async function handleDepsScan(repo: RepoItem) {
+    setScanningDeps(true);
+    setSelectedRepoId(repo.id);
+    setActiveTab('deps');
+    try {
+      await fetch('/api/deps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoId: repo.id }),
+      });
+      const detail = await fetchDepsDetail(repo.id);
+      applyLastScannedAt(repo.id, detail.scannedAt);
+      setDepsDetail(toVisibleDepsDetail(detail));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setScanningDeps(false);
+    }
+  }
+
+  const handleSbomDownload = useCallback(async (repo: RepoItem) => {
+    setSbomError(null);
+    setExportError(null);
+    const res = await fetch(`/api/sbom?repoId=${repo.id}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match?.[1] ?? 'sbom.cdx.json';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else {
+      const data = (await res.json()) as { error?: string; message?: string };
+      if (data.error === 'no_scan') {
+        setSbomError(data.message ?? t['dashboard.sbom.noScan']);
+      } else {
+        setSbomError(data.message ?? 'SBOM-Export fehlgeschlagen.');
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
+
+  const handleBundleExport = useCallback(async (repo: RepoItem) => {
+    const scanLabels = {
+      cve: t['dashboard.export.scan.cve'],
+      license: t['dashboard.export.scan.license'],
+      deps: t['dashboard.export.scan.deps'],
+    } as const;
+
+    setSbomError(null);
+    setExportError(null);
+    setExportingBundle(true);
+
+    try {
+      let reranMissingScans = false;
+      let response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoId: repo.id }),
+      });
+
+      if (response.status === 409) {
+        const payload = (await response.json()) as {
+          error?: string;
+          missingScans?: Array<keyof typeof scanLabels>;
+          message?: string;
+        };
+
+        if (payload.error === 'missing_scans' && payload.missingScans && payload.missingScans.length > 0) {
+          const labels = payload.missingScans.map((scan) => scanLabels[scan]).join(', ');
+          const shouldRun = window.confirm(interpolate(t['dashboard.export.confirmMissing'], { scans: labels }));
+          if (!shouldRun) return;
+
+          reranMissingScans = true;
+          response = await fetch('/api/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ repoId: repo.id, runMissingScans: true }),
+          });
+        } else {
+          setExportError(payload.message ?? t['dashboard.export.error']);
+          return;
+        }
+      }
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string; message?: string };
+        setExportError(payload.message ?? payload.error ?? t['dashboard.export.error']);
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const disposition = response.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match?.[1] ?? `${repo.name}-scan-export.zip`;
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+
+      if (reranMissingScans) {
+        hydratedRepoIdRef.current = repo.id;
+        await loadRepoDetails(repo);
+      }
+    } catch (error) {
+      console.error(error);
+      setExportError(t['dashboard.export.error']);
+    } finally {
+      setExportingBundle(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
+
+  async function handleScanAllPreCheck() {
+    setScanAllChecking(true);
+    try {
+      const res = await fetch('/api/dependabot/check');
+      if (!res.ok) { runScanAll(); return; }
+      const data = (await res.json()) as {
+        total: number;
+        disabledCount: number;
+        disabled: Array<{ repoId: string; fullName: string }>;
+      };
+      if (data.disabledCount > 0) {
+        setDependabotModal({ disabled: data.disabled, total: data.total });
+      } else {
+        runScanAll();
+      }
+    } catch {
+      runScanAll(); // fallback: scan anyway
+    } finally {
+      setScanAllChecking(false);
+    }
+  }
+
+  async function handleEnableAllAndScan() {
+    if (!dependabotModal) return;
+    setEnablingAll(true);
+    try {
+      await fetch('/api/dependabot/enable-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoIds: dependabotModal.disabled.map((r) => r.repoId) }),
+      });
+    } catch {
+      // continue scanning even if enable fails
+    }
+    setEnablingAll(false);
+    setDependabotModal(null);
+    runScanAll();
+  }
+
+  async function runScanAll() {
+    setDependabotModal(null);
+    scanAllCancelRef.current = false;
+    setScanAllRunning(true);
+    setScanAllProgress({ current: 0, total: repos.length });
+
+    for (let i = 0; i < repos.length; i++) {
+      if (scanAllCancelRef.current) break;
+      setScanAllProgress({ current: i + 1, total: repos.length });
+      const repo = repos[i];
+
+      try {
+        const cveRes = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repoId: repo.id }),
+        });
+        if (cveRes.ok) {
+          const cveData = (await cveRes.json()) as { dependabotDisabled?: boolean };
+          if (!cveData.dependabotDisabled) {
+            const scan = await fetchScanDetail(repo.id);
+            applyScanSummary(repo.id, scan);
+            if (selectedRepoIdRef.current === repo.id) {
+              setScanDetail(scan);
+              setScanHistory(await fetchScanHistory(repo.id));
+            }
+          }
+        }
+
+        if (scanAllCancelRef.current) break;
+
+        await fetch('/api/license', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repoId: repo.id }),
+        });
+        if (selectedRepoIdRef.current === repo.id) {
+          const license = await fetchLicenseDetail(repo.id);
+          applyLastScannedAt(repo.id, license.scannedAt);
+          setLicenseDetail(toVisibleLicenseDetail(license));
+        }
+
+        if (scanAllCancelRef.current) break;
+
+        await fetch('/api/deps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repoId: repo.id }),
+        });
+        const deps = await fetchDepsDetail(repo.id);
+        applyLastScannedAt(repo.id, deps.scannedAt);
+        if (selectedRepoIdRef.current === repo.id) {
+          setDepsDetail(toVisibleDepsDetail(deps));
+        }
+
+        // Fire-and-forget CI sync — doesn't block scan flow
+        void fetch('/api/ci/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repoId: repo.id }),
+        }).catch(() => { /* CI sync failure is non-fatal */ });
+
+      } catch (err) {
+        console.error(`Scan failed for ${repo.fullName}:`, err);
+      }
+    }
+
+    setScanAllRunning(false);
+  }
+
+  function handleCancelScanAll() {
+    scanAllCancelRef.current = true;
+  }
+
+  async function handleSelectRepo(repo: RepoItem) {
+    hydratedRepoIdRef.current = repo.id;
+    await loadRepoDetails(repo);
+  }
+
+  return (
+    <AppShell repoCount={repos.length}>
+      <div className="flex flex-col md:flex-row gap-6 items-start">
+        {/* Sidebar — repo list */}
+        <aside className={`w-full md:w-72 md:shrink-0 md:sticky md:top-20 md:max-h-[calc(100vh-6rem)] flex flex-col ${selectedRepo ? 'hidden md:flex' : 'flex'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {t['dashboard.repos']}
+            </h2>
+            <div className="flex items-center gap-2">
+              {scanAllRunning ? (
+                <button
+                  onClick={handleCancelScanAll}
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  {interpolate(t['dashboard.scanAllProgress'], {
+                    current: scanAllProgress.current,
+                    total: scanAllProgress.total,
+                  })}{' '}
+                  <span className="text-gray-500">{t['dashboard.scanAllCancel']}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => void handleScanAllPreCheck()}
+                  disabled={syncing || repos.length === 0 || scanAllChecking}
+                  className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors"
+                >
+                  {scanAllChecking ? t['dashboard.scanAllChecking'] : t['dashboard.scanAll']}
+                </button>
+              )}
+              <span className="text-gray-700">|</span>
+              <button
+                onClick={() => void handleSync()}
+                disabled={syncing || scanAllRunning}
+                className="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-50 transition-colors"
+              >
+                {syncing ? t['dashboard.syncing'] : t['dashboard.sync']}
+              </button>
+            </div>
+          </div>
+
+          {/* Search */}
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t['dashboard.search']}
+            className="w-full bg-gray-900 border border-gray-800 rounded-md px-3 py-1.5 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-700 transition-colors mb-2"
+          />
+
+          {/* Sort */}
+          <div className="flex gap-1 mb-2">
+            {([
+              ['name', t['dashboard.sort.name']],
+              ['risk', t['dashboard.sort.risk']],
+              ['language', t['dashboard.sort.language']],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                className={`px-2 py-0.5 text-[10px] rounded transition-colors ${
+                  sortBy === key
+                    ? 'bg-gray-800 text-gray-300'
+                    : 'text-gray-600 hover:text-gray-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Repo list (scrollable) */}
+          <div className="overflow-y-auto flex-1 space-y-0.5 -mr-2 pr-2">
+            {filteredRepos.length === 0 && repos.length > 0 && (
+              <p className="text-xs text-gray-600 py-4 text-center">{t['dashboard.noMatches']}</p>
+            )}
+            {repos.length === 0 && (
+              <p className="text-sm text-gray-600 py-8 text-center">
+                {t['dashboard.noRepos']}
+              </p>
+            )}
+            {paginatedRepos.map((repo) => (
+              <button
+                key={repo.id}
+                onClick={() => void handleSelectRepo(repo)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  selectedRepo?.id === repo.id
+                    ? 'bg-gray-800 text-white'
+                    : 'text-gray-400 hover:bg-gray-900 hover:text-gray-200'
+                }`}
+              >
+                <div className="font-medium truncate">{repo.fullName}</div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {repo.language && (
+                    <span className="text-xs text-gray-600">{repo.language}</span>
+                  )}
+                  {repo.latestScan && (
+                    <span className={`text-xs font-medium tabular-nums ${riskColor(repo.latestScan.riskScore)}`}>
+                      {repo.latestScan.riskScore}
+                    </span>
+                  )}
+                  {!repo.latestScan && (
+                    <span className="text-xs text-gray-700">{t['dashboard.notScanned']}</span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+          {/* Sidebar pagination */}
+          <div className="pt-2">
+            <Pagination
+              page={repoPage}
+              pageSize={REPO_PAGE_SIZE}
+              total={filteredRepos.length}
+              onPageChange={setRepoPage}
+              compact
+            />
+          </div>
+        </aside>
+
+        {/* Detail panel */}
+        <section className={`flex-1 min-w-0 w-full ${!selectedRepo ? 'hidden md:block' : 'block'}`}>
+          {!selectedRepo && (
+            <div className="flex items-center justify-center h-64 text-gray-600 text-sm">
+              {t['dashboard.selectRepo']}
+            </div>
+          )}
+
+          {selectedRepo && (
+            <div className="space-y-4">
+              {/* Repo header + actions dropdown — sticky */}
+              <div className="sticky top-20 z-30 bg-gray-950/90 backdrop-blur-sm pb-3 -mt-2 pt-2">
+                {/* Mobile back button */}
+                <button
+                  onClick={() => setSelectedRepoId(null)}
+                  className="md:hidden flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 mb-2 transition-colors"
+                >
+                  <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                  {t['dashboard.repos']}
+                </button>
+
+                {/* Row 1: Repo name + Actions dropdown */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold text-white truncate">{selectedRepo.fullName}</h2>
+                    {selectedRepo.lastScannedAt && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {t['dashboard.lastScanned']}{' '}
+                        {new Date(selectedRepo.lastScannedAt).toLocaleString('de-DE')}
+                      </p>
+                    )}
+                  </div>
+                  <div className="relative shrink-0" ref={actionsRef}>
+                    <button
+                      onClick={() => setActionsOpen((v) => !v)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-500 transition-colors"
+                    >
+                      {t['dashboard.actions']}
+                      <svg viewBox="0 0 20 20" className={`w-3.5 h-3.5 fill-current transition-transform ${actionsOpen ? 'rotate-180' : ''}`}>
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    {actionsOpen && (
+                      <div className="absolute right-0 mt-1 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 z-50" style={{ animation: 'fadeIn 100ms ease-out' }}>
+                        <button
+                          onClick={() => { setActionsOpen(false); void handleCveScan(selectedRepo); }}
+                          disabled={scanning}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 transition-colors"
+                        >
+                          {scanning ? t['dashboard.btn.scanning'] : t['dashboard.btn.cveScan']}
+                        </button>
+                        <button
+                          onClick={() => { setActionsOpen(false); void handleLicenseScan(selectedRepo); }}
+                          disabled={scanningLicense}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 transition-colors"
+                        >
+                          {scanningLicense ? t['dashboard.btn.scanning'] : t['dashboard.btn.license']}
+                        </button>
+                        <button
+                          onClick={() => { setActionsOpen(false); void handleDepsScan(selectedRepo); }}
+                          disabled={scanningDeps}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 transition-colors"
+                        >
+                          {scanningDeps ? t['dashboard.btn.scanning'] : t['dashboard.btn.deps']}
+                        </button>
+                        <div className="border-t border-gray-800 my-1" />
+                        <div className="px-2 py-1">
+                          <PRScanButton owner={selectedRepo.owner} repo={selectedRepo.name} />
+                        </div>
+                        <button
+                          onClick={() => { setActionsOpen(false); void handleSbomDownload(selectedRepo); }}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                        >
+                          {t['dashboard.actions.sbomExport']}
+                        </button>
+                        <button
+                          onClick={() => { setActionsOpen(false); void handleBundleExport(selectedRepo); }}
+                          disabled={exportingBundle}
+                          className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 transition-colors"
+                        >
+                          {exportingBundle ? t['dashboard.export.preparing'] : t['dashboard.actions.bundleExport']}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Tabs — clear visual separation from actions */}
+                <div className="flex flex-wrap gap-1 border-b border-gray-800 mt-4">
+                  {TABS.map(({ key, label }) => {
+                    const count =
+                      key === 'cve' ? scanDetail?.counts.total :
+                      key === 'license' ? licenseDetail?.licenseCount :
+                      key === 'deps' ? depsDetail?.summary.total :
+                      scanHistory.length || undefined;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => setActiveTab(key)}
+                        className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 -mb-px ${
+                          activeTab === key
+                            ? 'text-blue-400 border-blue-400'
+                            : 'text-gray-500 border-transparent hover:text-gray-300'
+                        }`}
+                      >
+                        {label}
+                        {count !== undefined && count > 0 && (
+                          <span className="ml-1.5 text-gray-600 tabular-nums">{count}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SBOM error notice */}
+              {sbomError && (
+                <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-300">{sbomError}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Starte zuerst einen CVE-Scan, damit die SBOM Vulnerability-Daten enthält.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSbomError(null);
+                      if (selectedRepo) void handleCveScan(selectedRepo);
+                    }}
+                    className="shrink-0 text-xs font-medium px-3 py-1.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/40 hover:bg-orange-500/30 transition-colors"
+                  >
+                    CVE Scan starten
+                  </button>
+                </div>
+              )}
+
+              {exportError && (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                  <p className="text-sm font-medium text-red-300">{exportError}</p>
+                </div>
+              )}
+
+              {/* Tab content */}
+              <div>
+                {activeTab === 'cve' && (
+                  <>
+                    {(loadingDetail || scanning) && <Loading text={t['dashboard.loading.cve']} />}
+                    {scanDetail && !loadingDetail && (
+                      <>
+                        <SeverityBreakdown counts={scanDetail.counts} riskScore={scanDetail.riskScore} />
+                        <div className="mt-4">
+                          <AdvisoryList advisories={scanDetail.advisories} />
+                        </div>
+                      </>
+                    )}
+                    {dependabotDisabled && selectedRepo && (
+                      <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 space-y-3">
+                        <div>
+                          <p className="text-sm font-medium text-yellow-300">{t['dashboard.dependabot.disabled']}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {t['dashboard.dependabot.prompt']}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => void handleEnableDependabot(selectedRepo)}
+                          disabled={enablingDependabot}
+                          className="text-xs font-medium px-3 py-1.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 hover:bg-yellow-500/30 transition-colors disabled:opacity-50"
+                        >
+                          {enablingDependabot ? t['dashboard.dependabot.enabling'] : t['dashboard.dependabot.enable']}
+                        </button>
+                      </div>
+                    )}
+                    {!scanDetail && !loadingDetail && !scanning && !dependabotDisabled && (
+                      <EmptyState text={t['dashboard.empty.cve']} />
+                    )}
+                  </>
+                )}
+
+                {activeTab === 'license' && (
+                  <>
+                    {scanningLicense && <Loading text={t['dashboard.loading.license']} />}
+                    {licenseDetail?.unsupportedEcosystem && !scanningLicense && (
+                      <EcosystemNotice label={licenseDetail.unsupportedEcosystem.label} />
+                    )}
+                    {licenseDetail && !licenseDetail.unsupportedEcosystem && !scanningLicense && (
+                      <LicenseList
+                        licenses={licenseDetail.licenses}
+                        summary={licenseDetail.summary}
+                        conflictCount={licenseDetail.conflictCount}
+                      />
+                    )}
+                    {!licenseDetail && !scanningLicense && (
+                      <EmptyState text={t['dashboard.empty.license']} />
+                    )}
+                  </>
+                )}
+
+                {activeTab === 'deps' && (
+                  <>
+                    {scanningDeps && <Loading text={t['dashboard.loading.deps']} />}
+                    {depsDetail?.unsupportedEcosystem && !scanningDeps && (
+                      <EcosystemNotice label={depsDetail.unsupportedEcosystem.label} />
+                    )}
+                    {depsDetail && !depsDetail.unsupportedEcosystem && !scanningDeps && (
+                      <DependencyTable dependencies={depsDetail.dependencies} summary={depsDetail.summary} />
+                    )}
+                    {!depsDetail && !scanningDeps && (
+                      <EmptyState text={t['dashboard.empty.deps']} />
+                    )}
+                  </>
+                )}
+
+                {activeTab === 'history' && (
+                  <>
+                    {loadingHistory && <Loading text={t['dashboard.loading.history']} />}
+                    {!loadingHistory && <RiskTimeline history={scanHistory} height={250} />}
+                    {!loadingHistory && scanHistory.length === 0 && (
+                      <p className="text-center py-4 text-gray-600 text-xs">
+                        {t['dashboard.empty.history']}
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {activeTab === 'ci' && selectedRepo && (
+                  ciEnabled
+                    ? <CIHealthTab repoId={selectedRepo.id} />
+                    : (
+                      <div className="rounded-lg border border-gray-700/50 bg-gray-900/40 px-6 py-10 text-center space-y-3">
+                        <p className="text-sm font-medium text-gray-300">{t['dashboard.ci.noData']}</p>
+                        <p className="text-xs text-gray-500">{t['dashboard.ci.noData.hint']}</p>
+                        <button
+                          type="button"
+                          onClick={() => void handleSync()}
+                          disabled={syncing}
+                          className="mt-2 text-xs font-medium px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors"
+                        >
+                          {syncing ? t['dashboard.syncing'] : t['dashboard.ci.noData.sync']}
+                        </button>
+                      </div>
+                    )
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+      {/* Dependabot pre-check modal */}
+      {dependabotModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" style={{ animation: 'fadeIn 150ms ease-out' }}>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4" style={{ animation: 'scaleIn 150ms ease-out' }}>
+            <h3 className="text-base font-semibold text-white mb-2">{t['dashboard.dependabot.modalTitle']}</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              {interpolate(t['dashboard.dependabot.modalDesc'], {
+                count: dependabotModal.disabled.length,
+                total: dependabotModal.total,
+              })}
+            </p>
+            <div className="max-h-32 overflow-y-auto mb-4 space-y-1">
+              {dependabotModal.disabled.map((r) => (
+                <div key={r.repoId} className="text-xs text-gray-500 font-mono truncate">{r.fullName}</div>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setDependabotModal(null); runScanAll(); }}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                {t['dashboard.dependabot.skipScan']}
+              </button>
+              <button
+                onClick={() => void handleEnableAllAndScan()}
+                disabled={enablingAll}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-500 disabled:opacity-50 transition-colors"
+              >
+                {enablingAll ? t['dashboard.dependabot.enabling.progress'] : t['dashboard.dependabot.enableAll']}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppShell>
+  );
+}
+
+function Loading({ text }: { text: string }) {
+  return (
+    <div className="flex items-center justify-center py-12 gap-2 text-gray-500 text-sm">
+      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      </svg>
+      {text}
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return <div className="text-center py-12 text-gray-600 text-sm">{text}</div>;
+}
+
+function EcosystemNotice({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-4">
+      <p className="text-sm font-medium text-blue-300">Ökosystem nicht unterstützt</p>
+      <p className="text-xs text-gray-400 mt-1">
+        Dieses Repository verwendet <span className="text-gray-200 font-medium">{label}</span>.
+        Lizenz- und Dependency-Scans werden aktuell nur für <span className="text-gray-200 font-medium">Node.js / npm</span> unterstützt.
+      </p>
+    </div>
+  );
+}
+

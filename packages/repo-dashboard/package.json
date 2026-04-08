@@ -1,0 +1,42 @@
+{
+  "name": "repo-dashboard",
+  "version": "0.1.0",
+  "description": "CLI dashboard for GitHub repositories \u2014 PRs, pipelines, issues at a glance",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "repo-dash": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "github",
+    "dashboard",
+    "cli",
+    "repos",
+    "developer-tools"
+  ],
+  "author": "Ice <ice@openclaw.ai>",
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "^20.0.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "module",
+  "overrides": {
+    "picomatch": ">=4.0.4"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "name": "perf-drift",
+  "version": "0.1.0",
+  "description": "Track build times, bundle sizes, and test duration to detect performance regressions",
+  "type": "module",
+  "bin": {
+    "drift": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "format": "prettier --write src/"
+  },
+  "keywords": [
+    "performance",
+    "monitoring",
+    "regression",
+    "ci",
+    "build-time",
+    "bundle-size",
+    "testing"
+  ],
+  "author": "Lava",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "glob": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.10",
+    "prettier": "^3.8.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.2.4"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "overrides": {
+    "picomatch": ">=4.0.4",
+    "brace-expansion": ">=5.0.5"
+  }
+}

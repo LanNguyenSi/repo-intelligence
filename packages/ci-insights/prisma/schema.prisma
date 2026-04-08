@@ -1,0 +1,159 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Authentication ──────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  githubLogin   String?   @unique
+  accounts      Account[]
+  sessions      Session[]
+  repos         Repo[]
+  createdAt     DateTime  @default(now())
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── CI Data ─────────────────────────────────────────────────
+
+model Repo {
+  id           String        @id @default(cuid())
+  owner        String
+  name         String
+  fullName     String        @unique // owner/name
+  userId       String?
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workflows    Workflow[]
+  lastSyncedAt DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([fullName])
+}
+
+model Workflow {
+  id         String        @id @default(cuid())
+  repoId     String
+  repo       Repo          @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  githubId   Int
+  name       String
+  path       String        // .github/workflows/ci.yml
+  state      String        // active, disabled, etc.
+  runs       WorkflowRun[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([repoId, githubId])
+  @@index([repoId])
+}
+
+model WorkflowRun {
+  id           String   @id @default(cuid())
+  workflowId   String
+  workflow     Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  githubRunId  BigInt   @unique
+  runNumber    Int
+  event        String   // push, pull_request, schedule, etc.
+  status       String   // completed, in_progress, queued
+  conclusion   String?  // success, failure, cancelled, skipped, timed_out, action_required
+  headBranch   String?
+  headSha      String?
+  headCommitMsg String? @db.Text
+  runStartedAt DateTime?
+  runCreatedAt DateTime
+  runUpdatedAt DateTime
+  durationMs   Int?     // computed: runUpdatedAt - runStartedAt
+  jobs         JobRun[]
+  createdAt    DateTime @default(now())
+
+  @@index([workflowId])
+  @@index([headBranch])
+  @@index([runCreatedAt])
+  @@index([conclusion])
+}
+
+model JobRun {
+  id            String      @id @default(cuid())
+  workflowRunId String
+  workflowRun   WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  githubJobId   BigInt      @unique
+  name          String
+  status        String
+  conclusion    String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  durationMs    Int?        // computed: completedAt - startedAt
+  runnerName    String?
+  steps         Json?       // store step-level data as JSON for flexibility
+  createdAt     DateTime    @default(now())
+
+  @@index([workflowRunId])
+  @@index([name])
+  @@index([conclusion])
+  @@index([startedAt])
+}
+
+// ── Plugin/MCP API Tokens ────────────────────────────────────
+// Enables external integrations (MCP, agent-ops, etc.)
+
+model ApiToken {
+  id          String    @id @default(cuid())
+  name        String
+  tokenHash   String    @unique // bcrypt hash
+  prefix      String    // first 8 chars for identification
+  scopes      String[]  // ["repos:read", "runs:read", "runs:write"]
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([prefix])
+}

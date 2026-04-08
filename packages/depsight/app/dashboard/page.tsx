@@ -1,0 +1,84 @@
+export const dynamic = 'force-dynamic';
+
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import { DashboardClient } from './DashboardClient';
+
+interface DashboardPageProps {
+  searchParams: Promise<{ repo?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const session = await auth();
+  if (!session?.user) redirect('/login');
+
+  const params = await searchParams;
+
+  const repos = await prisma.repo.findMany({
+    where: { userId: session.user.id, tracked: true },
+    orderBy: { updatedAt: 'desc' },
+    include: {
+      scans: {
+        where: { status: 'COMPLETED', cvePayload: { not: Prisma.DbNull } },
+        orderBy: { scannedAt: 'desc' },
+        take: 1,
+        select: {
+          id: true,
+          scannedAt: true,
+          status: true,
+          riskScore: true,
+          cveCount: true,
+          criticalCount: true,
+          highCount: true,
+          mediumCount: true,
+          lowCount: true,
+        },
+      },
+    },
+  });
+
+  const repoIds = repos.map((r) => r.id);
+
+  // Determine which repos have CI data ingested — only those show the CI Health tab
+  const ciRepos = repoIds.length > 0
+    ? await prisma.workflow.findMany({
+        where: { repoId: { in: repoIds } },
+        distinct: ['repoId'],
+        select: { repoId: true },
+      })
+    : [];
+  const ciEnabledRepoIds = ciRepos.map((w) => w.repoId);
+
+  return (
+    <DashboardClient
+      initialRepoId={params.repo ?? null}
+      ciEnabledRepoIds={ciEnabledRepoIds}
+      repos={repos.map((r) => ({
+        id: r.id,
+        fullName: r.fullName,
+        owner: r.owner,
+        name: r.name,
+        private: r.private,
+        language: r.language,
+        lastScannedAt: r.lastScannedAt?.toISOString() ?? null,
+        latestScan: r.scans[0]
+          ? {
+              id: r.scans[0].id,
+              scannedAt: r.scans[0].scannedAt.toISOString(),
+              status: r.scans[0].status,
+              riskScore: r.scans[0].riskScore,
+              counts: {
+                total: r.scans[0].cveCount,
+                critical: r.scans[0].criticalCount,
+                high: r.scans[0].highCount,
+                medium: r.scans[0].mediumCount,
+                low: r.scans[0].lowCount,
+              },
+            }
+          : null,
+      }))}
+    />
+  );
+}
