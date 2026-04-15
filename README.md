@@ -1,6 +1,14 @@
 # Repo Intelligence
 
-Tools for CI analysis, repository health scoring, PR review scoring, and performance drift detection.
+**Know which of your repos are healthy, which are drifting, and which are on fire — before the dashboards do.** Repo Intelligence is a toolkit for scoring repository hygiene, tracking CI and performance drift, and turning raw GitHub activity into the kind of signal a lead engineer actually uses on Monday morning.
+
+## How this fits alongside depsight and agent-ops-dashboard
+
+These three products overlap in spirit but solve different problems:
+
+- **[depsight](https://github.com/LanNguyenSi/depsight)** is the deployed, single-focus CVE and dependency-health product — one question ("am I shipping known-vulnerable code?") answered well.
+- **[agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard)** is the cross-repo operational view — a live fleet dashboard for many repositories at once.
+- **Repo Intelligence** is the toolkit layer: the CLIs and scorers (`repo-health`, `ci-insights`, `devreview`, `perf-drift`, `repo-dashboard`) that produce the underlying signals. depsight and agent-ops-dashboard consume and present; repo-intelligence computes.
 
 ## Packages
 
@@ -11,7 +19,3 @@ Tools for CI analysis, repository health scoring, PR review scoring, and perform
 | [repo-health](packages/repo-health) | Repository hygiene scorer (docs, tests, CI, license) | beta |
 | [repo-dashboard](packages/repo-dashboard) | CLI dashboard for PRs, pipelines, issues across repos | beta |
 | [perf-drift](packages/perf-drift) | Build time, bundle size, and test duration tracking | alpha |
-
-## Related
-
-[depsight](https://github.com/LanNguyenSi/depsight) is a standalone deployed product for dependency health and CVE tracking. It's the flagship of this product line but lives in its own repo.
