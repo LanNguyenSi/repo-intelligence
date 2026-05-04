@@ -6,7 +6,7 @@ Thanks for your interest. repo-intelligence is a workspace of small tools for re
 
 - Bug reports: include repro steps, expected vs. actual, the affected sub-package (`packages/<name>`).
 - Feature requests: describe the use case before the proposed shape.
-- For depsight specifically, prefer its own repo at [LanNguyenSi/depsight](https://github.com/LanNguyenSi/depsight) (the standalone flagship). The copy in `packages/depsight` here is a workspace mirror.
+- For depsight, use its standalone repo at [LanNguyenSi/depsight](https://github.com/LanNguyenSi/depsight). `packages/depsight/` in this workspace is intentionally a stub (no source, excluded from CI), kept only to reserve the slot.
 
 ## Pull Requests
 
@@ -17,7 +17,7 @@ Thanks for your interest. repo-intelligence is a workspace of small tools for re
 
 ## Sub-packages
 
-Each `packages/<name>` directory is independent. See `packages/<name>/README.md` for setup.
+Each active `packages/<name>` directory is independent. See `packages/<name>/README.md` for setup. The `depsight` slot is a stub; use the standalone repo above.
 
 ## Style
 

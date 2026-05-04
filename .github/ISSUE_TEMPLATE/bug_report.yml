@@ -8,7 +8,6 @@ body:
       label: Sub-package
       options:
         - ci-insights
-        - depsight
         - devreview
         - perf-drift
         - repo-dashboard
