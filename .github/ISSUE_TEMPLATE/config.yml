@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: depsight (standalone repo)
+    url: https://github.com/LanNguyenSi/depsight/issues
+    about: For depsight bugs and feature requests, prefer the standalone repo.
+  - name: Security report
+    url: https://github.com/LanNguyenSi/repo-intelligence/blob/master/SECURITY.md
+    about: Please report vulnerabilities privately, not via public issues.

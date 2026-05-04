@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a new check, view, or sub-package
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Sub-package
+      options:
+        - ci-insights
+        - devreview
+        - perf-drift
+        - repo-dashboard
+        - repo-health
+        - new sub-package
+        - other / unsure
+    validations:
+      required: true
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use case
+      description: What problem does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
