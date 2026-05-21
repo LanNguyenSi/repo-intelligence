@@ -21,7 +21,7 @@
     "bundle-size",
     "testing"
   ],
-  "author": "Lava",
+  "author": "Lan Nguyen Si",
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^11.8.1",

@@ -13,16 +13,16 @@ Automated GitHub PR reviews with a small scoring engine, CLI commands, and a web
 
 ## Installation
 
+DevReview is part of the `repo-intelligence` monorepo and is not published to npm. Install from source:
+
 ```bash
+git clone https://github.com/LanNguyenSi/repo-intelligence.git
+cd repo-intelligence/packages/devreview
 npm install
 npm run build
 ```
 
-Global install is also possible:
-
-```bash
-npm install -g devreview
-```
+The build produces a CLI at `dist/cli.js`. To get a global `devreview` command, run `npm link` from the package directory.
 
 ## Environment
 

@@ -4,9 +4,16 @@ Repository health checker. Scores your repo's hygiene, docs, CI, tests, and best
 
 ## Install
 
+repo-health is part of the `repo-intelligence` monorepo and is not published to npm. Install from source:
+
 ```bash
-npm install -g repo-health
+git clone https://github.com/LanNguyenSi/repo-intelligence.git
+cd repo-intelligence/packages/repo-health
+npm install
+npm run build
 ```
+
+The build produces a CLI at `dist/cli.js`. To get a global `repo-health` command, run `npm link` from the package directory.
 
 ## Usage
 
@@ -92,14 +99,9 @@ repo-health --min-score 8.5
 
 ## Companion Tools
 
-- [repo-dashboard](https://github.com/LanNguyenSi/repo-dashboard) — See all repos, PRs, pipelines at a glance
-- [devreview](https://github.com/LanNguyenSi/devreview) — Automated PR code review
-- [pr-prep](https://github.com/LanNguyenSi/pr-prep) — Pre-flight PR checks
+- [repo-dashboard](../repo-dashboard): See all repos, PRs, pipelines at a glance
+- [devreview](../devreview): Automated PR code review
 
 ## License
 
 MIT
-
----
-
-Built by 🧊 Ice

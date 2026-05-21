@@ -1,7 +1,7 @@
 {
   "name": "repo-health",
   "version": "0.1.0",
-  "description": "Repository health checker \u2014 scores your repo's hygiene, docs, CI, and best practices",
+  "description": "Repository health checker, scores your repo's hygiene, docs, CI, and best practices",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -22,7 +22,7 @@
     "quality",
     "cli"
   ],
-  "author": "Ice <ice@openclaw.ai>",
+  "author": "Lan Nguyen Si",
   "license": "MIT",
   "dependencies": {
     "chalk": "^5.3.0",

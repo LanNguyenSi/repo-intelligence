@@ -1,6 +1,6 @@
 # ci-insights
 
-CI/CD Intelligence Dashboard — tracks GitHub Actions workflow history and provides analytics for pipeline health, bottleneck detection, and flaky job identification.
+CI/CD Intelligence Dashboard: tracks GitHub Actions workflow history and provides analytics for pipeline health, bottleneck detection, and flaky job identification.
 
 ## Tech Stack
 
@@ -50,21 +50,21 @@ Open http://localhost:3000
 All endpoints under `/api/v1/`:
 
 **System**
-- `GET /health` — Health check
+- `GET /health`: Health check
 
 **Repos & Sync**
-- `GET /repos` — List tracked repos
-- `POST /repos/:owner/:repo/sync` — Sync a single repo
-- `POST /sync` — Trigger sync for all repos
-- `GET /sync` — Sync status
+- `GET /repos`: List tracked repos
+- `POST /repos/:owner/:repo/sync`: Sync a single repo
+- `POST /sync`: Trigger sync for all repos
+- `GET /sync`: Sync status
 
 **Analytics**
-- `GET /analytics/fail-rate` — Workflow/job failure rates
-- `GET /analytics/build-times` — P50/P95 build times per job/branch
-- `GET /analytics/flaky` — Flaky job detection (SHA-retry + high-fail-rate)
-- `GET /analytics/bottleneck` — Longest-running jobs
-- `GET /analytics/overview` — Cross-repo aggregated view
-- `GET /analytics/historical/:runId` — Historical context for a run
+- `GET /analytics/fail-rate`: Workflow/job failure rates
+- `GET /analytics/build-times`: P50/P95 build times per job/branch
+- `GET /analytics/flaky`: Flaky job detection (SHA-retry + high-fail-rate)
+- `GET /analytics/bottleneck`: Longest-running jobs
+- `GET /analytics/overview`: Cross-repo aggregated view
+- `GET /analytics/historical/:runId`: Historical context for a run
 
 ## Project Structure
 
@@ -101,7 +101,7 @@ The Docker Compose stack includes PostgreSQL and the Next.js app with automatic 
 
 ## Integration with depsight
 
-ci-insights powers the **CI Health tab** in **[depsight](https://github.com/LanNguyenSi/depsight)** — a security dashboard for CVE, license, and dependency health.
+ci-insights powers the **CI Health tab** in **[depsight](https://github.com/LanNguyenSi/depsight)**, a security dashboard for CVE, license, and dependency health.
 
 Once ci-insights is running and repos are synced, depsight automatically surfaces the CI Health tab for those repositories.
 
