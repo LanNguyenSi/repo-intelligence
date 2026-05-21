@@ -30,14 +30,19 @@ Performance regressions sneak in gradually. By the time you notice, your build t
 
 ## Installation
 
+perf-drift is part of the `repo-intelligence` monorepo and is not published to npm. Install from source:
+
 ```bash
-npm install -g perf-drift
+git clone https://github.com/LanNguyenSi/repo-intelligence.git
+cd repo-intelligence/packages/perf-drift
+npm install
+npm run build
 ```
 
-Or use with `npx`:
+The build produces a CLI at `dist/cli.js`. To get a global `drift` command, run `npm link` from the package directory.
 
 ```bash
-npx perf-drift track --build-time 45.2
+node dist/cli.js track --build-time 45.2
 ```
 
 ## Usage
@@ -120,13 +125,13 @@ drift check
     
 - name: Track metrics
   run: |
-    npx perf-drift track \
+    node dist/cli.js track \
       --build-time $BUILD_TIME \
       --auto \
       --message "${{ github.sha }}"
 
 - name: Check for regressions
-  run: npx perf-drift check --threshold 10
+  run: node dist/cli.js check --threshold 10
 ```
 
 ### Weekly Baseline Updates
@@ -231,8 +236,8 @@ No configuration file needed! Metrics are stored in `~/.perf-drift/metrics.db` (
 
 ```bash
 # Clone
-git clone https://github.com/LanNguyenSi/perf-drift.git
-cd perf-drift
+git clone https://github.com/LanNguyenSi/repo-intelligence.git
+cd repo-intelligence/packages/perf-drift
 
 # Install
 npm install
@@ -250,10 +255,6 @@ npm test
 ## License
 
 MIT
-
-## Author
-
-Lava 🌋
 
 ## Related Tools
 

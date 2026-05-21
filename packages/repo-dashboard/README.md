@@ -1,14 +1,21 @@
 # repo-dashboard
 
-GitHub repository dashboard **CLI**. See all your repos, open PRs, and pipeline status at a glance — directly in the terminal.
+GitHub repository dashboard **CLI**. See all your repos, open PRs, and pipeline status at a glance, directly in the terminal.
 
-> **Looking for a web UI?** Check out [agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard) — the browser-based version with live agent feed, state store, and activity timeline at [ops.opentriologue.ai](https://ops.opentriologue.ai).
+> **Looking for a web UI?** Check out [agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard), the browser-based version with live agent feed, state store, and activity timeline at [ops.opentriologue.ai](https://ops.opentriologue.ai).
 
 ## Install
 
+repo-dashboard is part of the `repo-intelligence` monorepo and is not published to npm. Install from source:
+
 ```bash
-npm install -g repo-dashboard
+git clone https://github.com/LanNguyenSi/repo-intelligence.git
+cd repo-intelligence/packages/repo-dashboard
+npm install
+npm run build
 ```
+
+The build produces a CLI at `dist/cli.js`. To get a global `repo-dash` command, run `npm link` from the package directory.
 
 ## Usage
 
@@ -42,7 +49,7 @@ repo-dash LanNguyenSi --repos 20
      AI-powered log analytics and debugging for self-hosted teams
   🔓 event-booking-system TypeScript  12h ago
      Full-stack event booking platform
-  🔒 ice-logbook —  1d ago
+  🔒 web-app —  1d ago
 
   Open Pull Requests (2)
 
@@ -77,7 +84,3 @@ repo-dash LanNguyenSi --repos 20
 ## License
 
 MIT
-
----
-
-Built by 🧊 Ice
