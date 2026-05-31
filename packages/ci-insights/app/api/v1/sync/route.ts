@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { syncAllRepos, syncRepo } from "@/lib/sync/scheduler";
+import { requireApiKey } from "@/lib/auth";
+import { isTrackedRepo } from "@/lib/sync/allowlist";
 
 /**
  * POST /api/v1/sync
@@ -16,6 +18,9 @@ import { syncAllRepos, syncRepo } from "@/lib/sync/scheduler";
  * Returns sync status (last sync times per repo).
  */
 export async function POST(request: NextRequest) {
+  const unauthorized = requireApiKey(request);
+  if (unauthorized) return unauthorized;
+
   let body: {
     repo?: string;
     staleness?: number;
@@ -32,6 +37,12 @@ export async function POST(request: NextRequest) {
 
   try {
     if (body.repo) {
+      if (!(await isTrackedRepo(body.repo))) {
+        return NextResponse.json(
+          { error: "Repo is not tracked" },
+          { status: 404 }
+        );
+      }
       const result = await syncRepo(body.repo, body);
       return NextResponse.json(result);
     }
