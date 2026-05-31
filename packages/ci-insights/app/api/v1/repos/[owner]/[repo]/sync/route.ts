@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestRepo } from "@/lib/ingestion/ingest";
 import { requireApiKey } from "@/lib/auth";
-import { isTrackedRepo } from "@/lib/sync/allowlist";
 
 /**
  * POST /api/v1/repos/:owner/:repo/sync
- * Trigger ingestion for a specific repo.
+ * Trigger ingestion for a specific repo. This is the onboarding path: an
+ * authenticated operator (holding SYNC_API_KEY) tracks a new repo here, which
+ * upserts the repo row. It is therefore intentionally NOT gated by the
+ * tracked-repo allowlist; the API key is the trust boundary.
  * Body: { since?: string (ISO date), maxRunsPerWorkflow?: number, fetchJobs?: boolean }
  */
 export async function POST(
@@ -16,10 +18,6 @@ export async function POST(
   if (unauthorized) return unauthorized;
 
   const { owner, repo } = await params;
-
-  if (!(await isTrackedRepo(`${owner}/${repo}`))) {
-    return NextResponse.json({ error: "Repo is not tracked" }, { status: 404 });
-  }
 
   let body: {
     since?: string;

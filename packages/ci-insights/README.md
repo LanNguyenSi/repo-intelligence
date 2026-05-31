@@ -55,9 +55,16 @@ All endpoints under `/api/v1/`:
 
 **Repos & Sync**
 - `GET /repos`: List tracked repos
-- `POST /repos/:owner/:repo/sync`: Sync a single repo
-- `POST /sync`: Trigger sync for all repos
+- `POST /repos/:owner/:repo/sync`: Sync a single repo. This is also the onboarding path: the first call for a new `owner/repo` starts tracking it. Requires `Authorization: Bearer $SYNC_API_KEY`.
+- `POST /sync`: Trigger sync for all tracked repos (or one already-tracked repo via the `repo` body field). Requires `Authorization: Bearer $SYNC_API_KEY`.
 - `GET /sync`: Sync status
+
+To onboard the first repo on a fresh install, call the per-repo sync endpoint with a valid key:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/repos/<owner>/<repo>/sync \
+  -H "Authorization: Bearer $SYNC_API_KEY"
+```
 
 **Analytics**
 - `GET /analytics/fail-rate`: Workflow/job failure rates

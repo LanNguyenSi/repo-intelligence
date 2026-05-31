@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 /**
  * Whether a repo is tracked, i.e. already present in the `repo` table.
  *
- * Sync/ingestion endpoints accept an attacker-controllable `owner/repo`, which
- * would otherwise let any caller point the server's GITHUB_TOKEN at an
- * arbitrary repository (token abuse / SSRF-like). Restrict callers to the set
- * of repos an operator has already chosen to track.
+ * The `repo` body field on `POST /api/v1/sync` is a convenience for re-syncing
+ * one already-tracked repo, so it is restricted to the known set as defense in
+ * depth. Onboarding a brand-new repo goes through
+ * `POST /api/v1/repos/:owner/:repo/sync` (API-key authenticated), which is not
+ * allowlisted because that route is how an operator starts tracking a repo.
  *
  * @param fullName `owner/repo`
  */
