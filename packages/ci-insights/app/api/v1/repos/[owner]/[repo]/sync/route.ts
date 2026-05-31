@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestRepo } from "@/lib/ingestion/ingest";
+import { requireApiKey } from "@/lib/auth";
+import { isTrackedRepo } from "@/lib/sync/allowlist";
 
 /**
  * POST /api/v1/repos/:owner/:repo/sync
@@ -10,7 +12,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ owner: string; repo: string }> }
 ) {
+  const unauthorized = requireApiKey(request);
+  if (unauthorized) return unauthorized;
+
   const { owner, repo } = await params;
+
+  if (!(await isTrackedRepo(`${owner}/${repo}`))) {
+    return NextResponse.json({ error: "Repo is not tracked" }, { status: 404 });
+  }
 
   let body: {
     since?: string;

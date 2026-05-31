@@ -22,6 +22,7 @@ CI/CD Intelligence Dashboard: tracks GitHub Actions workflow history and provide
 # Create .env with your GitHub token
 echo 'DATABASE_URL="postgresql://postgres:password@localhost:5432/ci_insights"' > .env
 echo 'GITHUB_TOKEN="ghp_your_token_here"' >> .env
+echo 'SYNC_API_KEY="generate_a_long_random_secret"' >> .env
 
 # Start everything (DB + deps + migrations + dev server)
 make dev
@@ -86,6 +87,7 @@ tests/              Unit, integration, edge-case tests
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `GITHUB_TOKEN` | Yes | GitHub PAT for API access |
+| `SYNC_API_KEY` | Yes | Shared secret required as `Authorization: Bearer` on the sync endpoints |
 
 ## Docker Deployment
 
