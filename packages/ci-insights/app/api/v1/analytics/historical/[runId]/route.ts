@@ -16,6 +16,9 @@ export async function GET(
   if (!repo) {
     return NextResponse.json({ error: "repo query param required" }, { status: 400 });
   }
+  if (!/^\d+$/.test(runId)) {
+    return NextResponse.json({ error: "invalid runId" }, { status: 400 });
+  }
 
   const context = await getHistoricalContext(repo, BigInt(runId));
   if (!context) {

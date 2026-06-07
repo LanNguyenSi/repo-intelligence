@@ -1,8 +1,8 @@
 /**
  * API route input validation tests
  */
-import { describe, it, expect } from "vitest";
-import { parsePeriod, requireParam } from "@/lib/utils/validation";
+import { describe, it, expect, vi } from "vitest";
+import { parsePeriod, requireParam, serverError } from "@/lib/utils/validation";
 
 describe("parsePeriod", () => {
   it("returns period 30 when param is null (default)", () => {
@@ -61,5 +61,21 @@ describe("requireParam", () => {
       const body = await result.error.json();
       expect(body.error).toContain("workflowId");
     }
+  });
+});
+
+describe("serverError", () => {
+  it("returns a generic 500 body that never echoes the internal message", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const secret = "ECONNREFUSED postgres://user:pass@db:5432";
+    const response = serverError(new Error(secret));
+
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.error).toBe("Internal server error");
+    expect(JSON.stringify(body)).not.toContain(secret);
+    // Real error is still logged server-side for debugging.
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });
