@@ -30,7 +30,8 @@ export function requireParam(
 }
 
 export function serverError(err: unknown): NextResponse {
-  // Never expose stack traces
-  const message = err instanceof Error ? err.message : "Internal server error";
-  return NextResponse.json({ error: message }, { status: 500 });
+  // Log the real error server-side, but never leak internal messages or stack
+  // traces to the client. Always return a fixed generic body.
+  console.error(err);
+  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 }
