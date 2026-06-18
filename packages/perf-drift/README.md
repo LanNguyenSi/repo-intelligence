@@ -26,7 +26,7 @@ Performance regressions sneak in gradually. By the time you notice, your build t
 ✅ **CI-friendly:**
 - Simple CLI interface
 - Auto-detection of bundle sizes
-- No configuration needed
+- Works with zero config (optional `.perfdriftrc.json`)
 
 ## Installation
 
@@ -58,6 +58,9 @@ drift track --build-time 45.2 --message "After optimization"
 
 # Auto-detect bundle size
 drift track --build-time 45.2 --auto
+
+# Run a command and record its wall-clock time as build time
+drift track --run "npm run build"
 ```
 
 ### 2. Set Baseline
@@ -94,6 +97,16 @@ drift report --days 30
 
 # Last 50 measurements
 drift report --limit 50
+```
+
+### 5. Reset Stored Metrics
+
+```bash
+# Delete all tracked metrics (prompts for confirmation)
+drift reset
+
+# Skip the confirmation prompt
+drift reset --force
 ```
 
 ## Examples
@@ -190,7 +203,21 @@ Test time:   avg 12.15s  min 12.00s  max 12.30s  (15 samples)
 
 ## Configuration
 
-No configuration file needed! Metrics are stored in `~/.perf-drift/metrics.db` (SQLite).
+A config file is optional. Metrics are stored in `~/.perf-drift/metrics.db` (SQLite), and the tool works with no config at all.
+
+To override defaults, add a `.perfdriftrc.json` (or `.perfdriftrc`) file in the working directory:
+
+```json
+{
+  "threshold": 10,
+  "directories": ["dist", "build", "out", ".next"]
+}
+```
+
+- `threshold`: default regression threshold percentage used by `drift check` when `--threshold` is not passed (default `10`).
+- `directories`: directories scanned when auto-detecting bundle size (default `["dist", "build", "out", ".next"]`).
+
+An invalid config file is ignored and the built-in defaults are used.
 
 ## Data Storage
 
