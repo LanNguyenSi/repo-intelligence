@@ -24,7 +24,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/LanNguyenSi/devreview.git"
+    "url": "https://github.com/LanNguyenSi/repo-intelligence.git",
+    "directory": "packages/devreview"
   },
   "dependencies": {
     "@octokit/auth-app": "^6.0.0",

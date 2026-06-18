@@ -19,3 +19,13 @@ These three products overlap in spirit but solve different problems:
 | [repo-health](packages/repo-health) | Repository hygiene scorer (docs, tests, CI, license) | beta |
 | [repo-dashboard](packages/repo-dashboard) | CLI dashboard for PRs, pipelines, issues across repos | beta |
 | [perf-drift](packages/perf-drift) | Build time, bundle size, and test duration tracking | alpha |
+
+## Workspace layout
+
+There is no root `package.json` and no npm workspace. Each `packages/<name>` directory has its own `package.json`, lockfile, and tooling, and is installed, built, and tested independently (the CI matrix runs one job per package). Start from the per-package `README.md`:
+
+```bash
+cd packages/<name>
+npm install
+npm run build
+```

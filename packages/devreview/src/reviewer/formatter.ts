@@ -68,7 +68,7 @@ export class ReviewFormatter {
       lines.push('</details>', '');
     }
 
-    lines.push('---', '*Automated review by [DevReview](https://github.com/LanNguyenSi/devreview)*');
+    lines.push('---', '*Automated review by [DevReview](https://github.com/LanNguyenSi/repo-intelligence/tree/master/packages/devreview)*');
 
     return lines.join('\n');
   }

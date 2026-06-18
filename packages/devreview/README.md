@@ -49,6 +49,12 @@ Post a review back to GitHub:
 devreview review https://github.com/owner/repo/pull/123 --comment
 ```
 
+Set the minimum acceptable score (default `7`, must be between 0 and 10):
+
+```bash
+devreview review https://github.com/owner/repo/pull/123 --min-score 8
+```
+
 Show only the score object:
 
 ```bash
@@ -122,13 +128,17 @@ npm test
 
 ## Docker
 
+There is no Docker Compose setup. Build the image, then run the webhook server container directly:
+
 ```bash
-# Build
+# Build the image (devreview:latest)
 make docker-build
 
-# Run with Docker Compose
-make docker-up
-
-# Stop
-make docker-down
+# Run the webhook server (exposes port 3000, with a /health check)
+docker run --rm -p 3000:3000 \
+  -e GITHUB_TOKEN=your-token \
+  -e WEBHOOK_SECRET=your-webhook-secret \
+  devreview
 ```
+
+The container entrypoint is `node dist/server.js`, so it always starts in webhook-server mode.
