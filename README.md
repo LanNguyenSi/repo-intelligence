@@ -10,6 +10,40 @@ These three products overlap in spirit but solve different problems:
 - **[agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard)** is the cross-repo operational view: a live fleet dashboard for many repositories at once.
 - **Repo Intelligence** is the toolkit layer: the CLIs and scorers (`repo-health`, `ci-insights`, `devreview`, `perf-drift`, `repo-dashboard`) that produce the underlying signals. depsight and agent-ops-dashboard consume and present; repo-intelligence computes.
 
+## Architecture
+
+The five packages split into CLI tools that compute signals directly and a Next.js analytics service (ci-insights) that ingests, stores, and exposes those signals to downstream consumers.
+
+```mermaid
+flowchart LR
+  subgraph src ["Data Sources"]
+    GH[("GitHub API")]
+    FS[("Local Filesystem")]
+  end
+
+  subgraph computes ["Computes — packages/"]
+    RH["repo-health<br/>packages/repo-health"]
+    DR["devreview<br/>packages/devreview"]
+    RD["repo-dashboard<br/>packages/repo-dashboard"]
+    PD["perf-drift<br/>packages/perf-drift"]
+    SQLITE[("SQLite<br/>~/.perf-drift/metrics.db")]
+    CIS["ci-insights<br/>packages/ci-insights"]
+    CIDB[("PostgreSQL<br/>prisma/schema.prisma")]
+  end
+
+  subgraph presents ["Consumers — present"]
+    DEP["depsight"]
+  end
+
+  GH --> DR
+  GH --> RD
+  GH --> CIS
+  FS --> RH
+  PD <--> SQLITE
+  CIS <--> CIDB
+  CIS --> DEP
+```
+
 ## Packages
 
 | Package | Description | Status |
