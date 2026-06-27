@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { syncAllRepos, syncRepo } from "@/lib/sync/scheduler";
 import { requireApiKey } from "@/lib/auth";
 import { isTrackedRepo } from "@/lib/sync/allowlist";
+import { serverError } from "@/lib/utils/validation";
 
 /**
  * POST /api/v1/sync
@@ -49,10 +50,7 @@ export async function POST(request: NextRequest) {
     const summary = await syncAllRepos(body);
     return NextResponse.json(summary);
   } catch (err: unknown) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Sync failed" },
-      { status: 500 }
-    );
+    return serverError(err);
   }
 }
 

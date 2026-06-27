@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { detectFlakyJobs } from "@/lib/analytics/flaky";
 import { prisma } from "@/lib/prisma";
 import type { Period } from "@/lib/analytics/fail-rate";
+import { serverError } from "@/lib/utils/validation";
 
 /**
  * GET /api/v1/analytics/flaky
@@ -38,9 +39,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ period, threshold, totalFlaky: data.length, data });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Query failed" },
-      { status: 500 }
-    );
+    return serverError(err);
   }
 }

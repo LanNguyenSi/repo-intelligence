@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBottlenecks } from "@/lib/analytics/bottleneck";
 import { prisma } from "@/lib/prisma";
 import type { Period } from "@/lib/analytics/fail-rate";
+import { serverError } from "@/lib/utils/validation";
 
 /**
  * GET /api/v1/analytics/bottleneck
@@ -27,6 +28,6 @@ export async function GET(request: NextRequest) {
     if (limit) data = data.slice(0, limit);
     return NextResponse.json({ period, data });
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Query failed" }, { status: 500 });
+    return serverError(err);
   }
 }

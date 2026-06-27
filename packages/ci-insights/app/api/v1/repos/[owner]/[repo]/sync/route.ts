@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestRepo } from "@/lib/ingestion/ingest";
 import { requireApiKey } from "@/lib/auth";
+import { serverError } from "@/lib/utils/validation";
 
 /**
  * POST /api/v1/repos/:owner/:repo/sync
@@ -43,9 +44,6 @@ export async function POST(
 
     return NextResponse.json(result);
   } catch (err: unknown) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Ingestion failed" },
-      { status: 500 }
-    );
+    return serverError(err);
   }
 }

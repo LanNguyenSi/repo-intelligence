@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllRepoHealthSummaries, getRepoHealthSummary } from "@/lib/analytics/cross-repo";
 import type { Period } from "@/lib/analytics/fail-rate";
+import { serverError } from "@/lib/utils/validation";
 
 /**
  * GET /api/v1/analytics/overview
@@ -22,6 +23,6 @@ export async function GET(request: NextRequest) {
     const summaries = await getAllRepoHealthSummaries(period);
     return NextResponse.json({ period, total: summaries.length, repos: summaries });
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Query failed" }, { status: 500 });
+    return serverError(err);
   }
 }
