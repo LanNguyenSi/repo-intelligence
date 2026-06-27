@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getWorkflowBuildTimes, type WorkflowBuildTimes } from "@/lib/analytics/build-times";
 import { prisma } from "@/lib/prisma";
 import type { Period } from "@/lib/analytics/fail-rate";
+import { serverError } from "@/lib/utils/validation";
 
 /**
  * GET /api/v1/analytics/build-times
@@ -34,9 +35,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ period, data });
   } catch (err: unknown) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Query failed" },
-      { status: 500 }
-    );
+    return serverError(err);
   }
 }
