@@ -13,10 +13,13 @@ export function createWebhookServer(options: {
   webhookSecret: string;
   port?: number;
   config?: ReviewConfig;
+  // Test seams: pass pre-constructed instances to avoid real GitHub/webhook calls
+  _webhooks?: Pick<Webhooks, 'verify'>;
+  _reviewer?: Pick<Reviewer, 'reviewAndComment'>;
 }) {
   const app = express();
-  const webhooks = new Webhooks({ secret: options.webhookSecret });
-  const reviewer = new Reviewer(options.githubToken, options.config ?? DEFAULT_CONFIG);
+  const webhooks = options._webhooks ?? new Webhooks({ secret: options.webhookSecret });
+  const reviewer = options._reviewer ?? new Reviewer(options.githubToken, options.config ?? DEFAULT_CONFIG);
   const port = options.port || 3000;
 
   // GitHub webhook payload

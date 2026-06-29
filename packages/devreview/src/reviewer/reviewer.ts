@@ -15,10 +15,21 @@ export class Reviewer {
   private github: GitHubClient;
   private config: ReviewConfig;
 
-  constructor(githubToken: string, config: ReviewConfig = DEFAULT_CONFIG) {
-    this.scorer = new Scorer(config);
-    this.formatter = new ReviewFormatter();
-    this.github = new GitHubClient(githubToken);
+  // The optional `_deps` parameter is a test seam: pass pre-constructed
+  // collaborators in tests to avoid real GitHub/LLM calls. Runtime behavior
+  // is identical when called without it.
+  constructor(
+    githubToken: string,
+    config: ReviewConfig = DEFAULT_CONFIG,
+    _deps?: {
+      scorer?: Scorer;
+      formatter?: ReviewFormatter;
+      github?: GitHubClient;
+    },
+  ) {
+    this.scorer = _deps?.scorer ?? new Scorer(config);
+    this.formatter = _deps?.formatter ?? new ReviewFormatter();
+    this.github = _deps?.github ?? new GitHubClient(githubToken);
     this.config = config;
   }
 
