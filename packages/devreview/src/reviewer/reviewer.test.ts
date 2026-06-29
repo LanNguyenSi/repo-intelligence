@@ -11,9 +11,9 @@
 //   includes it (and excludes the real source file) so the assertion fails
 // ============================================================================
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Reviewer } from './reviewer.js';
-import type { ReviewScore, PRContext, ReviewResult } from '../types.js';
+import type { ReviewScore, PRContext } from '../types.js';
 import { DEFAULT_CONFIG } from '../types.js';
 
 // ---------------------------------------------------------------------------

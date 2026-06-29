@@ -22,7 +22,7 @@ import { createWebhookServer } from './webhook.js';
 // Shared mock objects (injected via _deps seam)
 // ---------------------------------------------------------------------------
 
-const mockVerify = vi.fn<[string, string], Promise<boolean>>();
+const mockVerify = vi.fn<(payload: string, signature: string) => Promise<boolean>>();
 const mockReviewAndComment = vi.fn();
 
 const mockWebhooks = { verify: mockVerify };
