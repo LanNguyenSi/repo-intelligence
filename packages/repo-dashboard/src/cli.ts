@@ -3,11 +3,13 @@
 // repo-dashboard — CLI Entry Point
 // ============================================================================
 
+import { fileURLToPath } from "node:url";
+
 import { Command } from "commander";
 import { GitHubDashboard } from "./github.js";
 import { displayHeader, displayRepos, displayPRs, displayPipelines, displaySummary } from "./display.js";
 
-const program = new Command();
+export const program = new Command();
 
 program
   .name("repo-dash")
@@ -66,4 +68,7 @@ program
     }
   });
 
-program.parse();
+// ESM entrypoint guard — allows importing cli.ts in tests without executing commander
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  program.parse();
+}

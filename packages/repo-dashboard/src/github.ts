@@ -43,8 +43,9 @@ export interface WorkflowRunInfo {
 export class GitHubDashboard {
   private octokit: Octokit;
 
-  constructor(token: string) {
-    this.octokit = new Octokit({ auth: token });
+  // The second parameter is a test seam: pass a pre-constructed Octokit mock in tests.
+  constructor(token: string, octokit?: Octokit) {
+    this.octokit = octokit ?? new Octokit({ auth: token });
   }
 
   async getRepos(owner: string): Promise<RepoInfo[]> {

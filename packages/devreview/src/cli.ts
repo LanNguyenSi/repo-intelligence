@@ -5,6 +5,8 @@
 
 import 'dotenv/config';
 
+import { fileURLToPath } from 'node:url';
+
 import { Command } from 'commander';
 
 import { loadConfig, mergeConfig } from './config.js';
@@ -124,11 +126,14 @@ program
     }
   });
 
-program.parseAsync().catch((error) => {
-  exitWithError(error);
-});
+// ESM entrypoint guard — allows importing cli.ts in tests without executing commander
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  program.parseAsync().catch((error) => {
+    exitWithError(error);
+  });
+}
 
-function parsePullRequestUrl(prUrl: string): { owner: string; repo: string; prNumber: number } {
+export function parsePullRequestUrl(prUrl: string): { owner: string; repo: string; prNumber: number } {
   const match = prUrl.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
 
   if (!match) {
@@ -144,7 +149,7 @@ function parsePullRequestUrl(prUrl: string): { owner: string; repo: string; prNu
   };
 }
 
-function parseScoreThreshold(value: string): number {
+export function parseScoreThreshold(value: string): number {
   const score = Number.parseFloat(value);
 
   if (!Number.isFinite(score) || score < 0 || score > 10) {
@@ -154,7 +159,7 @@ function parseScoreThreshold(value: string): number {
   return score;
 }
 
-function parsePort(value: string): number {
+export function parsePort(value: string): number {
   const port = Number.parseInt(value, 10);
 
   if (!Number.isInteger(port) || port <= 0) {
@@ -164,7 +169,7 @@ function parsePort(value: string): number {
   return port;
 }
 
-function requireGitHubToken(tokenOverride?: string): string {
+export function requireGitHubToken(tokenOverride?: string): string {
   const token = tokenOverride ?? process.env.GITHUB_TOKEN;
 
   if (!token) {

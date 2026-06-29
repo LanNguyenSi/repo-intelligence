@@ -3,13 +3,15 @@
 // repo-health — CLI Entry Point
 // ============================================================================
 
+import { fileURLToPath } from "url";
+
 import { Command } from "commander";
 import { resolve } from "path";
 import { runHealthCheck } from "./checks.js";
 import { displayReport, displayJSON } from "./display.js";
 import { parseMinScore } from "./cli-options.js";
 
-const program = new Command();
+export const program = new Command();
 
 program
   .name("repo-health")
@@ -38,4 +40,7 @@ program
     }
   });
 
-program.parse();
+// ESM entrypoint guard — allows importing cli.ts in tests without executing commander
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  program.parse();
+}
