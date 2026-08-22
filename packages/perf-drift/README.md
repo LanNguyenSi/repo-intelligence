@@ -256,7 +256,7 @@ An invalid config file is ignored and the built-in defaults are used.
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 20+
 - npm (for installation)
 
 ## Development
