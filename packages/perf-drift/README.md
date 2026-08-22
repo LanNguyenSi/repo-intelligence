@@ -261,6 +261,8 @@ An invalid config file is ignored and the built-in defaults are used.
 
 ## Development
 
+Development requires Node 20.19+ or 22.12+ (stricter than the Node.js 20+ runtime requirement above).
+
 ```bash
 # Clone
 git clone https://github.com/LanNguyenSi/repo-intelligence.git

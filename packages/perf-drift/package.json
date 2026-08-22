@@ -37,6 +37,9 @@
     "typescript": "^5.8.2",
     "vitest": "^4.1.4"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "files": [
     "dist",
     "README.md",
