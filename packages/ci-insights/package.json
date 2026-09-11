@@ -16,7 +16,6 @@
     "@octokit/rest": "^22.0.1",
     "@octokit/types": "^16.0.0",
     "@prisma/client": "^6.19.2",
-    "@vitest/mocker": "^4.1.11",
     "next": "^16.3.3",
     "prisma": "^6.19.2",
     "react": "19.2.4",
