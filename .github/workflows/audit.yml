@@ -5,31 +5,34 @@ name: Audit
 # advisory cannot turn a release or an unrelated PR red with zero code
 # change.
 #
-# Threshold: HIGH and CRITICAL advisories fail the gate step; moderate
-# and low are report-only (first step, never red). npm audit reads
+# Thresholds: the full tree fails the first gate step at HIGH and
+# CRITICAL; runtime (--omit=dev) dependencies also fail the second gate
+# step at MODERATE and up. Low, and moderate outside runtime deps, are
+# report-only (the first step, never red). npm audit reads
 # package-lock.json directly; no npm ci needed, zero added install time.
 #
 # This repo has five independent lockfile trees, one per package; the
 # matrix below covers each by name.
 #
-# If a HIGH/CRITICAL has no upstream fix, resolution is an operator
-# decision (documented override or allowlist), never a silent threshold
-# bump in this file.
+# If a HIGH/CRITICAL, or a MODERATE-or-up runtime advisory, has no
+# upstream fix, resolution is an operator decision (documented override
+# or allowlist), never a silent threshold bump in this file.
 #
 # Registering this job as a required status check in branch protection
 # is a separate operator action, out of scope here.
 #
 # Gate step outcomes (incident 2026-09-04: the registry's advisories/bulk
 # endpoint stopped answering for hours; npm's own client applies no
-# timeout to that call and just hangs). The gate step below has four
+# timeout to that call and just hangs). Each gate step below has four
 # distinct outcomes, never conflated:
-#   - exit 0, CLEAN: the endpoint answered, no HIGH or CRITICAL advisory.
-#   - exit 1, FINDINGS: the endpoint answered and returned a HIGH or
-#     CRITICAL advisory. Requires a vulnerability summary line, for
-#     example "1 high severity vulnerability" or npm's mixed-severity
-#     form "3 vulnerabilities (2 high, 1 critical)". A summary line
-#     wins over any outage-like text also present in the same log, so a
-#     real finding can never be misread as an outage.
+#   - exit 0, CLEAN: the endpoint answered, no advisory at or above the
+#     step's own threshold.
+#   - exit 1, FINDINGS: the endpoint answered and returned an advisory at
+#     or above the step's own threshold. Requires a vulnerability summary
+#     line, for example "1 high severity vulnerability" or npm's
+#     mixed-severity form "3 vulnerabilities (2 high, 1 critical)". A
+#     summary line wins over any outage-like text also present in the same
+#     log, so a real finding can never be misread as an outage.
 #   - exit 2, OUTAGE: no vulnerability summary, but an outage marker is
 #     present (registry error text, a DNS/connection failure, or the
 #     local timeout below firing). This is NOT an advisory finding; do
@@ -41,8 +44,8 @@ name: Audit
 #     failure, not silenced; read the log.
 # The report step below is bounded the same way (a step timeout plus an
 # internal `timeout`) so a hanging endpoint cannot eat the job's
-# timeout-minutes budget before this gate step, which does the actual
-# classification, ever gets to run.
+# timeout-minutes budget before the gate steps, which do the actual
+# classification, ever get to run.
 
 on:
   pull_request:
@@ -76,8 +79,8 @@ jobs:
         working-directory: packages/${{ matrix.package }}
         # Bounded (step timeout plus an internal `timeout`) so a hanging
         # endpoint cannot consume the job's timeout-minutes budget
-        # before the gate step below, which does the actual
-        # classification, gets a chance to run; still non-blocking via
+        # before the gate steps below, which do the actual
+        # classification, get a chance to run; still non-blocking via
         # `|| true` either way.
         timeout-minutes: 2
         run: timeout 60s npm audit --no-fund || true
@@ -164,7 +167,7 @@ jobs:
           exit 3
 
       - name: npm audit gate (moderate, runtime deps fail)
-        # D-004: runtime dependencies (--omit=dev) fail this gate at
+        # Runtime dependencies (--omit=dev) fail this gate at
         # --audit-level=moderate; the full-tree gate above stays at
         # --audit-level=high. Same four-outcome classification as that
         # gate (see its comment block for the incident-2026-09-04
