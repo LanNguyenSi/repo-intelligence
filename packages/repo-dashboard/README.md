@@ -1,10 +1,14 @@
 # repo-dashboard
 
-GitHub repository dashboard **CLI**. See all your repos, open PRs, and pipeline status at a glance, directly in the terminal.
+Terminal dashboard for a GitHub account's repositories: see open PRs, pipeline status, and recent activity at a glance.
 
-> **Looking for a web UI?** Check out [agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard), the browser-based version with live agent feed, state store, and activity timeline at [ops.opentriologue.ai](https://ops.opentriologue.ai).
+> Looking for a web UI? See [agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard), the browser-based version with a live agent feed, state store, and activity timeline.
 
-## Install
+## Overview
+
+repo-dashboard queries the GitHub API for a given user or org and prints a one-screen summary: repositories, open pull requests, and CI pipeline status, with a closing line of what needs attention. It supports JSON output for scripting or feeding into other tools.
+
+## Install / quick start
 
 repo-dashboard is part of the `repo-intelligence` monorepo and is not published to npm. Install from source:
 
@@ -13,9 +17,9 @@ git clone https://github.com/LanNguyenSi/repo-intelligence.git
 cd repo-intelligence/packages/repo-dashboard
 npm install
 npm run build
+export GITHUB_TOKEN=ghp_...
+node dist/cli.js LanNguyenSi
 ```
-
-The build produces a CLI at `dist/cli.js`. To get a global `repo-dash` command, run `npm link` from the package directory.
 
 ## Usage
 
@@ -37,7 +41,9 @@ repo-dash LanNguyenSi --json
 repo-dash LanNguyenSi --repos 20
 ```
 
-## Output
+`repo-dash` above is shorthand for `node dist/cli.js` in this unpublished package. The owner argument defaults to `LanNguyenSi` when omitted.
+
+Sample output:
 
 ```
   📊 repo-dashboard — LanNguyenSi
@@ -81,6 +87,18 @@ repo-dash LanNguyenSi --repos 20
 | `--ci` | Show only pipelines | false |
 | `--json` | JSON output | false |
 
+## Documentation
+
+- [Repository architecture](https://github.com/LanNguyenSi/repo-intelligence/blob/master/docs/architecture.md)
+
+## Development
+
+```bash
+npm install
+npm run build
+npm test
+```
+
 ## License
 
-MIT
+MIT. Status: beta.

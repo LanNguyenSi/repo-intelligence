@@ -1,22 +1,25 @@
 # ci-insights
 
-CI/CD Intelligence Dashboard: tracks GitHub Actions workflow history and provides analytics for pipeline health, bottleneck detection, and flaky job identification.
+CI/CD intelligence dashboard for teams tracking GitHub Actions health across repositories: pipeline analytics, bottleneck detection, and flaky job identification.
 
-## Tech Stack
+## Overview
 
-- **Next.js 16** (App Router) + React 19 + TypeScript
-- **PostgreSQL 16** via Prisma ORM
-- **Octokit** for GitHub Actions API integration
-- **Tailwind CSS 4** for styling
-- **Vitest** for testing
+ci-insights ingests GitHub Actions workflow run history via the GitHub API, stores it in PostgreSQL, and exposes analytics endpoints for fail rates, build-time percentiles, flaky jobs, bottlenecks, and cross-repo overviews. It is a Next.js 16 (App Router) + React 19 + TypeScript app, using Prisma over PostgreSQL 16, Octokit for the GitHub API, Tailwind CSS 4 for styling, and Vitest for tests. It runs as a small service, either standalone or as the CI Health data source behind [depsight](https://github.com/LanNguyenSi/depsight).
+
+## Key features
+
+- Idempotent ingestion of repos, workflows, and runs from the GitHub Actions API
+- Analytics: fail rate, P50/P95 build times, flaky job detection (SHA-retry and high-fail-rate heuristics), longest-running jobs, cross-repo overview
+- Sync scheduler with a 3-concurrent limit
+- Docker Compose stack (PostgreSQL + app) with automatic Prisma migrations on startup
 
 ## Prerequisites
 
 - Node.js 22+
 - Docker (for PostgreSQL)
-- GitHub Personal Access Token (for syncing CI data)
+- A GitHub personal access token (for syncing CI data)
 
-## Quick Start
+## Install / quick start
 
 ```bash
 # Create .env with your GitHub token
@@ -28,9 +31,48 @@ echo 'SYNC_API_KEY="generate_a_long_random_secret"' >> .env
 make dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000. Then onboard a repo (the first sync call for an `owner/repo` starts tracking it):
 
-## Available Commands
+```bash
+curl -X POST http://localhost:3000/api/v1/repos/<owner>/<repo>/sync \
+  -H "Authorization: Bearer $SYNC_API_KEY"
+```
+
+## Usage
+
+API endpoints, all under `/api/v1/`:
+
+**System**
+- `GET /health`: health check
+
+**Repos & sync**
+- `GET /repos`: list tracked repos
+- `POST /repos/:owner/:repo/sync`: sync a single repo (also the onboarding path). Requires `Authorization: Bearer $SYNC_API_KEY`.
+- `POST /sync`: trigger sync for all tracked repos, or one via the `repo` body field. Requires `Authorization: Bearer $SYNC_API_KEY`.
+- `GET /sync`: sync status
+
+**Analytics**
+- `GET /analytics/fail-rate`: workflow/job failure rates
+- `GET /analytics/build-times`: P50/P95 build times per job/branch
+- `GET /analytics/flaky`: flaky job detection (SHA-retry + high-fail-rate)
+- `GET /analytics/bottleneck`: longest-running jobs
+- `GET /analytics/overview`: cross-repo aggregated view
+- `GET /analytics/historical/:runId`: historical context for a run
+
+## Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `GITHUB_TOKEN` | Yes | GitHub PAT for API access |
+| `SYNC_API_KEY` | Yes | Shared secret required as `Authorization: Bearer` on the sync endpoints |
+
+## Documentation
+
+- [Repository architecture](https://github.com/LanNguyenSi/repo-intelligence/blob/master/docs/architecture.md)
+- [depsight](https://github.com/LanNguyenSi/depsight): once ci-insights is running and repos are synced, depsight surfaces a CI Health tab for those repositories
+
+## Development
 
 | Command | Description |
 |---------|-------------|
@@ -46,35 +88,7 @@ Open http://localhost:3000
 | `make clean` | Remove build artifacts and node_modules |
 | `make help` | Show all commands |
 
-## API Endpoints
-
-All endpoints under `/api/v1/`:
-
-**System**
-- `GET /health`: Health check
-
-**Repos & Sync**
-- `GET /repos`: List tracked repos
-- `POST /repos/:owner/:repo/sync`: Sync a single repo. This is also the onboarding path: the first call for a new `owner/repo` starts tracking it. Requires `Authorization: Bearer $SYNC_API_KEY`.
-- `POST /sync`: Trigger sync for all tracked repos (or one already-tracked repo via the `repo` body field). Requires `Authorization: Bearer $SYNC_API_KEY`.
-- `GET /sync`: Sync status
-
-To onboard the first repo on a fresh install, call the per-repo sync endpoint with a valid key:
-
-```bash
-curl -X POST http://localhost:3000/api/v1/repos/<owner>/<repo>/sync \
-  -H "Authorization: Bearer $SYNC_API_KEY"
-```
-
-**Analytics**
-- `GET /analytics/fail-rate`: Workflow/job failure rates
-- `GET /analytics/build-times`: P50/P95 build times per job/branch
-- `GET /analytics/flaky`: Flaky job detection (SHA-retry + high-fail-rate)
-- `GET /analytics/bottleneck`: Longest-running jobs
-- `GET /analytics/overview`: Cross-repo aggregated view
-- `GET /analytics/historical/:runId`: Historical context for a run
-
-## Project Structure
+Project structure:
 
 ```
 app/api/v1/         API routes (health, repos, sync, analytics)
@@ -88,15 +102,7 @@ prisma/             Schema + migrations
 tests/              Unit, integration, edge-case tests
 ```
 
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `GITHUB_TOKEN` | Yes | GitHub PAT for API access |
-| `SYNC_API_KEY` | Yes | Shared secret required as `Authorization: Bearer` on the sync endpoints |
-
-## Docker Deployment
+Docker:
 
 ```bash
 # Build and start everything (PostgreSQL + app)
@@ -106,12 +112,6 @@ docker compose up -d
 docker build -t ci-insights .
 ```
 
-The Docker Compose stack includes PostgreSQL and the Next.js app with automatic Prisma migrations on startup.
+## License
 
-## Integration with depsight
-
-ci-insights powers the **CI Health tab** in **[depsight](https://github.com/LanNguyenSi/depsight)**, a security dashboard for CVE, license, and dependency health.
-
-Once ci-insights is running and repos are synced, depsight automatically surfaces the CI Health tab for those repositories.
-
-> See [depsight](https://github.com/LanNguyenSi/depsight) for setup instructions.
+MIT, see the repository [LICENSE](https://github.com/LanNguyenSi/repo-intelligence/blob/master/LICENSE). Private package, not published. Status: beta.
