@@ -25,7 +25,7 @@ npm install
 npm run build
 ```
 
-The build produces a CLI at `dist/cli.js`. Run it with `node`, or use the `devreview` name in the examples below as shorthand for `node dist/cli.js`:
+The build produces a CLI at `dist/cli.js`. To get a global `devreview` command, run `npm link` from the package directory. The examples below use the short `devreview` name; without the link, substitute `node dist/cli.js`:
 
 ```bash
 GITHUB_TOKEN=your-token node dist/cli.js score https://github.com/owner/repo/pull/123
