@@ -41,7 +41,7 @@ repo-health --json
 repo-health --min-score 7
 ```
 
-`repo-health` above is shorthand for `node dist/cli.js` in this unpublished package.
+`repo-health` above is shorthand for `node dist/cli.js` in this unpublished package; run `npm link` from the package directory to get the global `repo-health` command instead.
 
 Sample output:
 

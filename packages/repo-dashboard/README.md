@@ -41,7 +41,7 @@ repo-dash LanNguyenSi --json
 repo-dash LanNguyenSi --repos 20
 ```
 
-`repo-dash` above is shorthand for `node dist/cli.js` in this unpublished package. The owner argument defaults to `LanNguyenSi` when omitted.
+`repo-dash` above is shorthand for `node dist/cli.js` in this unpublished package; run `npm link` from the package directory to get the global `repo-dash` command instead. The owner argument defaults to `LanNguyenSi` when omitted.
 
 Sample output:
 
