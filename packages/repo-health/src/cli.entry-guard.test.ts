@@ -30,6 +30,10 @@ let buildDir: string;
 let scratchDir: string;
 let linkedCli: string;
 
+// Builds the package with tsc; vitest's 10 s default hook timeout is too
+// tight when several package builds run in parallel on a CI runner.
+const BUILD_TIMEOUT_MS = 120_000;
+
 beforeAll(() => {
   const { outDir } = buildIntoTempDist(packageRoot);
   buildDir = outDir;
@@ -40,7 +44,7 @@ beforeAll(() => {
   mkdirSync(binDir, { recursive: true });
   linkedCli = join(binDir, "repo-health");
   symlinkSync(builtCli, linkedCli);
-});
+}, BUILD_TIMEOUT_MS);
 
 afterAll(() => {
   if (scratchDir) {

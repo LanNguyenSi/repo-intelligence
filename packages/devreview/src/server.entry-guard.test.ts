@@ -73,6 +73,10 @@ async function waitForHealth(port: number, timeoutMs: number): Promise<void> {
   );
 }
 
+// Builds the package with tsc; vitest's 10 s default hook timeout is too
+// tight when several package builds run in parallel on a CI runner.
+const BUILD_TIMEOUT_MS = 120_000;
+
 beforeAll(() => {
   const { outDir } = buildIntoTempDist(packageRoot);
   buildDir = outDir;
@@ -83,7 +87,7 @@ beforeAll(() => {
   mkdirSync(binDir, { recursive: true });
   linkedServer = join(binDir, 'server.js');
   symlinkSync(builtServer, linkedServer);
-});
+}, BUILD_TIMEOUT_MS);
 
 afterAll(async () => {
   if (child && child.exitCode === null && !child.killed) {
