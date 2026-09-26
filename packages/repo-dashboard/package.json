@@ -8,7 +8,8 @@
     "repo-dash": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "test": "vitest run"
