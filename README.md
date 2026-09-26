@@ -1,6 +1,6 @@
 # Repo Intelligence
 
-A toolkit of independent CLIs and a service that score repository hygiene, PR quality, CI health, and performance drift.
+A toolkit of independent CLIs and a service that score repository hygiene, PR quality, CI health, and performance drift, for maintainers who want repo and CI health signals.
 
 [![CI](https://github.com/LanNguyenSi/repo-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/LanNguyenSi/repo-intelligence/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/github/license/LanNguyenSi/repo-intelligence)](LICENSE)
 
@@ -20,7 +20,7 @@ repo-intelligence turns raw GitHub activity, CI logs, and local repository state
 
 ## Quick start
 
-Prerequisites: Node.js 18+ (`ci-insights` needs Node.js 22+ and PostgreSQL 16 via Prisma; see its own README) and git. There is no root install; each package is installed from its own directory. Using `repo-health` as an example:
+Prerequisites: git and Node.js (18+ for `repo-health` and `repo-dashboard`, 20+ for `perf-drift`, 22+ plus PostgreSQL 16 via Prisma for `ci-insights`; CI uses Node.js 22). The packages are not published to npm. There is no root install; each package is installed from its own directory. Using `repo-health` as an example:
 
 ```bash
 git clone https://github.com/LanNguyenSi/repo-intelligence.git
@@ -29,15 +29,15 @@ npm install
 npm run build
 ```
 
-This produces a CLI at `dist/cli.js`. Run it directly, or `npm link` from the package directory for a global `repo-health` command.
+This produces a CLI at `dist/cli.js`; run it with `node dist/cli.js`.
 
 ## Usage
 
 ```bash
-node dist/cli.js --min-score 7
+node dist/cli.js /path/to/your/repo --min-score 7
 ```
 
-Scores the current directory and exits non-zero if the score is below 7 (useful as a CI gate). Run with `--json` for machine-readable output. See [packages/repo-health/README.md](packages/repo-health/README.md) for all flags, and each package's own README for its CLI or service usage.
+Scores the given repository (the path is optional and defaults to the current directory) and exits non-zero if the score is below 7 (useful as a CI gate). Run with `--json` for machine-readable output. See [packages/repo-health/README.md](packages/repo-health/README.md) for all flags, and each package's own README for its CLI or service usage.
 
 ## Documentation
 
