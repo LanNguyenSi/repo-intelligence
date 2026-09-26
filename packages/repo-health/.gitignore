@@ -3,3 +3,4 @@ dist/
 .env
 .vitest-cache/
 coverage/
+.entry-guard-build-*/
