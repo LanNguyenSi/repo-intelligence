@@ -7,8 +7,13 @@
 // comparison failed and the CLI exited 0 without running anything. The fix
 // resolves both sides with realpathSync before comparing.
 //
-// This test builds the package, links a scratch symlink to the built CLI,
-// and asserts the linked binary actually runs (prints help, exits 0).
+// This test builds the package into a private temporary directory, links a
+// scratch symlink to the built CLI there, and asserts the linked binary
+// actually runs (prints help, exits 0). Building into a temp outDir (see
+// ./test-support/build-into-temp-dist.ts) rather than the package's own
+// dist/ means this build cannot race another test file's build, and a tsc
+// failure is surfaced in the thrown error instead of being hidden behind
+// piped, unread stdio.
 // ============================================================================
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -17,17 +22,18 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildIntoTempDist } from "./test-support/build-into-temp-dist.js";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
-const builtCli = join(packageRoot, "dist", "cli.js");
 
+let buildDir: string;
 let scratchDir: string;
 let linkedCli: string;
 
 beforeAll(() => {
-  // Build so dist/cli.js reflects current source, regardless of what ran
-  // before it in the same process. Note: this writes into the package's dist/.
-  execFileSync("npm", ["run", "build"], { cwd: packageRoot, stdio: "pipe" });
+  const { outDir } = buildIntoTempDist(packageRoot);
+  buildDir = outDir;
+  const builtCli = join(outDir, "cli.js");
 
   scratchDir = mkdtempSync(join(tmpdir(), "repo-health-entry-guard-"));
   const binDir = join(scratchDir, "bin");
@@ -39,6 +45,9 @@ beforeAll(() => {
 afterAll(() => {
   if (scratchDir) {
     rmSync(scratchDir, { recursive: true, force: true });
+  }
+  if (buildDir) {
+    rmSync(buildDir, { recursive: true, force: true });
   }
 });
 
