@@ -1,17 +1,20 @@
 # DevReview
 
-Automated GitHub PR reviews with a small scoring engine, CLI commands, and a webhook server.
+Automated GitHub pull request reviews with a scoring engine, CLI commands, and a webhook server, for teams who want a consistent first pass on every PR.
 
-## What It Does
+## Overview
 
-- Reviews pull requests from a GitHub PR URL
-- Produces category scores for code quality, architecture, testing, documentation, and best practices
-- Can post the result back to GitHub as a pull request review
-- Can run as a webhook server for `pull_request` events
-- Reads optional `.ai/*.md` files from the target repository for lightweight project context
-- Applies project-level rules from `.devreview.json`
+DevReview reviews a pull request from its GitHub URL and produces category scores for code quality, architecture, testing, documentation, and best practices. It can post the result back to GitHub as a PR review, or run as a webhook server that reacts to `pull_request` events automatically. Scoring rules are configurable per repository via `.devreview.json`.
 
-## Installation
+## Key features
+
+- Reviews a PR from its URL, in the terminal or posted back to GitHub
+- Category scoring: code quality, architecture, testing, documentation, best practices
+- Webhook server for `opened` and `synchronize` pull request events
+- Optional lightweight project context from `.ai/AGENTS.md`, `.ai/ARCHITECTURE.md`, `.ai/DECISIONS.md` in the target repository
+- Configurable scoring weights and ignore patterns via `.devreview.json`
+
+## Install / quick start
 
 DevReview is part of the `repo-intelligence` monorepo and is not published to npm. Install from source:
 
@@ -22,101 +25,39 @@ npm install
 npm run build
 ```
 
-The build produces a CLI at `dist/cli.js`. To get a global `devreview` command, run `npm link` from the package directory.
-
-## Environment
-
-DevReview currently uses a GitHub token, not a GitHub App flow.
+The build produces a CLI at `dist/cli.js`. Run it with `node`, or use the `devreview` name in the examples below as shorthand for `node dist/cli.js`:
 
 ```bash
-GITHUB_TOKEN=your-token
-WEBHOOK_SECRET=your-webhook-secret
-PORT=3000
-DEVREVIEW_CONFIG=.devreview.json
+GITHUB_TOKEN=your-token node dist/cli.js score https://github.com/owner/repo/pull/123
 ```
 
-## CLI
-
-Review a PR in the terminal:
+## Usage
 
 ```bash
+export GITHUB_TOKEN=your-token
+
+# Review a PR in the terminal
 devreview review https://github.com/owner/repo/pull/123
-```
 
-Post a review back to GitHub:
-
-```bash
+# Post the review back to GitHub
 devreview review https://github.com/owner/repo/pull/123 --comment
-```
 
-Set the minimum acceptable score (default `7`, must be between 0 and 10):
-
-```bash
+# Set the minimum acceptable score (default 7, 0-10)
 devreview review https://github.com/owner/repo/pull/123 --min-score 8
-```
 
-Show only the score object:
-
-```bash
+# Show only the score object
 devreview score https://github.com/owner/repo/pull/123
-```
 
-Start the webhook server:
-
-```bash
-devreview server --port 3000
+# Start the webhook server (also needs WEBHOOK_SECRET)
+WEBHOOK_SECRET=your-webhook-secret devreview server --port 3000
 ```
 
 Each command also accepts `--token <token>` and `--config <path>`.
 
-## Webhook Mode
+## Documentation
 
-The server listens on:
-
-- `POST /webhook`
-- `GET /health`
-
-It currently reacts to `pull_request` events with the actions `opened` and `synchronize`.
-
-## Configuration
-
-Create a `.devreview.json` in the working directory to customize scoring and review rules:
-
-```json
-{
-  "rules": {
-    "requireTests": true,
-    "requireDocs": true,
-    "minScore": 7
-  },
-  "ignore": [
-    "dist/**",
-    "coverage/**",
-    "node_modules/**"
-  ],
-  "scoring": {
-    "codeQuality": 30,
-    "architecture": 25,
-    "testing": 20,
-    "documentation": 15,
-    "bestPractices": 10
-  }
-}
-```
-
-`ignore` patterns support `*` and `**`.
-
-## AI Context
-
-If the target repository contains these files, DevReview will read them and mention that project context was available:
-
-```text
-.ai/AGENTS.md
-.ai/ARCHITECTURE.md
-.ai/DECISIONS.md
-```
-
-This is currently lightweight context enrichment, not full LLM-based review generation.
+- [Configuration reference (`.devreview.json`), webhook server, and Docker setup](https://github.com/LanNguyenSi/repo-intelligence/blob/master/packages/devreview/docs/configuration.md)
+- [Repository architecture](https://github.com/LanNguyenSi/repo-intelligence/blob/master/docs/architecture.md)
 
 ## Development
 
@@ -126,19 +67,6 @@ npm run build
 npm test
 ```
 
-## Docker
+## License
 
-There is no Docker Compose setup. Build the image, then run the webhook server container directly:
-
-```bash
-# Build the image (devreview:latest)
-make docker-build
-
-# Run the webhook server (exposes port 3000, with a /health check)
-docker run --rm -p 3000:3000 \
-  -e GITHUB_TOKEN=your-token \
-  -e WEBHOOK_SECRET=your-webhook-secret \
-  devreview
-```
-
-The container entrypoint is `node dist/server.js`, so it always starts in webhook-server mode.
+MIT. Status: beta.
