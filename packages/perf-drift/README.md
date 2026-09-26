@@ -1,36 +1,22 @@
-# Performance Drift Detector
+# perf-drift
 
-Track build times, bundle sizes, and test duration over time to catch performance regressions early.
+CLI that tracks build time, bundle size, and test duration over time, and flags regressions in CI, for any project.
 
-## Why?
+## Overview
 
-Performance regressions sneak in gradually. By the time you notice, your build takes 5 minutes instead of 30 seconds. **Drift** helps you catch them early.
+Performance regressions creep in gradually: a build that grows from 30 seconds to 5 minutes rarely happens in one commit. perf-drift records those three metrics on every run, stores them in a local SQLite database, and compares the latest run against a baseline you set. It needs no config to get started, and works with any build tool since metrics are recorded manually or via `--auto`/`--run`.
 
-## Features
+## Key features
 
-✅ **Track metrics over time:**
-- Build time (seconds)
-- Bundle size (bytes)
-- Test duration (seconds)
+- Tracks build time, bundle size, and test duration over time
+- Regression detection against a baseline, with a configurable threshold (default 10%) and a CI-friendly exit code
+- Historical reports with averages, minimums, and maximums
+- Auto-detects bundle size from common output directories (`dist`, `build`, `out`, `.next`)
+- Works with zero config; an optional `.perfdriftrc.json` overrides the threshold and scanned directories
 
-✅ **Regression detection:**
-- Configurable threshold (default: 10%)
-- Exit code 1 for CI integration
-- Compare against baseline
+## Install / quick start
 
-✅ **Trend visualization:**
-- Historical data in SQLite
-- Summary statistics (avg/min/max)
-- Baseline markers
-
-✅ **CI-friendly:**
-- Simple CLI interface
-- Auto-detection of bundle sizes
-- Works with zero config (optional `.perfdriftrc.json`)
-
-## Installation
-
-perf-drift is part of the `repo-intelligence` monorepo and is not published to npm. Install from source:
+perf-drift is part of the `repo-intelligence` monorepo and is not published to npm. Install from source (requires Node.js 20+):
 
 ```bash
 git clone https://github.com/LanNguyenSi/repo-intelligence.git
@@ -39,173 +25,38 @@ npm install
 npm run build
 ```
 
-The build produces a CLI at `dist/cli.js`. To get a global `drift` command, run `npm link` from the package directory.
+The build produces a CLI at `dist/cli.js`. Run it with `node`:
 
 ```bash
 node dist/cli.js track --build-time 45.2
 ```
 
+The examples below use the short `drift` name for readability; substitute `node dist/cli.js` for `drift` (or a shell alias of your own) since the package is not published.
+
 ## Usage
 
-### 1. Track Metrics
-
 ```bash
-# Manual tracking
+# Record a metric
 drift track --build-time 45.2 --bundle-size 1500000 --test-time 12.3
 
-# With message/commit
-drift track --build-time 45.2 --message "After optimization"
+# Or auto-detect bundle size and time a build command
+drift track --run "npm run build" --auto
 
-# Auto-detect bundle size
-drift track --build-time 45.2 --auto
-
-# Run a command and record its wall-clock time as build time
-drift track --run "npm run build"
-```
-
-### 2. Set Baseline
-
-```bash
-# Set most recent metric as baseline
-drift baseline
-
-# Create new baseline with message
+# Set the most recent metric as the baseline
 drift baseline --message "v1.0.0 release"
-```
 
-### 3. Check for Regressions
-
-```bash
-# Check against baseline (exit 1 if regression > 10%)
-drift check
-
-# Custom threshold
+# Check the latest metric against the baseline (exits 1 on regression > threshold)
 drift check --threshold 15
 
-# CI mode (explicit)
-drift check --fail-on-regression
+# Show recent history
+drift report --limit 20
 ```
 
-### 4. View Reports
-
-```bash
-# Last 20 measurements
-drift report
-
-# Last 30 days
-drift report --days 30
-
-# Last 50 measurements
-drift report --limit 50
-```
-
-### 5. Reset Stored Metrics
-
-```bash
-# Delete all tracked metrics (prompts for confirmation)
-drift reset
-
-# Skip the confirmation prompt
-drift reset --force
-```
-
-## Examples
-
-### Local Development
-
-```bash
-# After making changes
-time npm run build  # Note the time
-drift track --build-time 42.5 --message "Optimized webpack config"
-
-# Set baseline when happy
-drift baseline
-
-# Later, check for regressions
-drift check
-```
-
-### CI Integration
-
-```bash
-# GitHub Actions example
-- name: Build
-  run: |
-    START=$(date +%s)
-    npm run build
-    END=$(date +%s)
-    BUILD_TIME=$((END - START))
-    
-- name: Track metrics
-  run: |
-    node dist/cli.js track \
-      --build-time $BUILD_TIME \
-      --auto \
-      --message "${{ github.sha }}"
-
-- name: Check for regressions
-  run: node dist/cli.js check --threshold 10
-```
-
-### Weekly Baseline Updates
-
-```bash
-# Monday morning: set new baseline
-drift baseline --message "Weekly baseline $(date +%Y-%m-%d)"
-
-# Rest of week: check against it
-drift check
-```
-
-## Output Examples
-
-### `drift track`
-```
-✓ Metrics recorded!
-
-Recorded:
-  Build time:  45.20s
-  Bundle size: 1.43 MB
-  Test time:   12.30s
-  Message:     After optimization
-
-Metric ID: 42
-```
-
-### `drift check`
-```
-📊 Performance Check
-
-Build Time:  42.0s → 45.2s (+7.6%) SLOWER
-Bundle Size: 1.35 MB → 1.43 MB (+5.9%) LARGER
-Test Time:   12.0s → 12.3s (+2.5%) OK
-
-Threshold: 10%
-
-✅ No regressions detected.
-```
-
-### `drift report`
-```
-📈 Performance Report (15 measurements)
-
-Date         Build      Bundle       Tests      Message
-────────────────────────────────────────────────────────────────────────────────
-  2026-03-15 42.00s     1.35 MB      12.00s    
-  2026-03-16 43.10s     1.38 MB      12.10s    Added feature X
-  2026-03-17 45.20s     1.43 MB      12.30s    After optimization
-⭐ 2026-03-18 44.50s     1.40 MB      12.20s    Weekly baseline
-
-Build time:  avg 43.70s  min 42.00s  max 45.20s  (15 samples)
-Bundle size: avg 1.39 MB  min 1.35 MB  max 1.43 MB  (15 samples)
-Test time:   avg 12.15s  min 12.00s  max 12.30s  (15 samples)
-```
+`drift reset` deletes all tracked metrics (`--force` skips the confirmation prompt).
 
 ## Configuration
 
-A config file is optional. Metrics are stored in `~/.perf-drift/metrics.db` (SQLite), and the tool works with no config at all.
-
-To override defaults, add a `.perfdriftrc.json` (or `.perfdriftrc`) file in the working directory:
+A config file is optional; perf-drift works with no config. To override defaults, add a `.perfdriftrc.json` (or `.perfdriftrc`) file in the working directory:
 
 ```json
 {
@@ -214,79 +65,29 @@ To override defaults, add a `.perfdriftrc.json` (or `.perfdriftrc`) file in the 
 }
 ```
 
-- `threshold`: default regression threshold percentage used by `drift check` when `--threshold` is not passed (default `10`).
-- `directories`: directories scanned when auto-detecting bundle size (default `["dist", "build", "out", ".next"]`).
+- `threshold`: default regression percentage used by `drift check` when `--threshold` is not passed (default `10`)
+- `directories`: directories scanned when auto-detecting bundle size (default `["dist", "build", "out", ".next"]`)
 
 An invalid config file is ignored and the built-in defaults are used.
 
-## Data Storage
+## Documentation
 
-- **Location:** `~/.perf-drift/metrics.db`
-- **Format:** SQLite database
-- **Schema:**
-  ```sql
-  CREATE TABLE metrics (
-    id INTEGER PRIMARY KEY,
-    timestamp INTEGER,
-    buildTime REAL,
-    bundleSize INTEGER,
-    testTime REAL,
-    message TEXT,
-    baseline INTEGER
-  );
-  ```
-
-## Tips
-
-1. **Track consistently:** Same environment, same command
-2. **Set baselines regularly:** After releases or major optimizations
-3. **Use in CI:** Catch regressions before merge
-4. **Add context:** Use `--message` to document changes
-5. **Automate:** Integrate into your build scripts
-
-## Comparison with Existing Tools
-
-| Tool | Focus | Drift Advantage |
-|------|-------|-----------------|
-| Lighthouse | Browser metrics | Drift tracks build/test performance |
-| bundlewatch | Bundle size only | Drift tracks multiple metrics |
-| Codecov | Coverage | Drift tracks execution time |
-
-**Drift fills the gap:** General-purpose performance tracking for any project.
-
-## Requirements
-
-- Node.js 20+
-- npm (for installation)
+- [Command reference, output samples, storage schema, and tool comparison](https://github.com/LanNguyenSi/repo-intelligence/blob/master/packages/perf-drift/docs/reference.md)
+- [Repository architecture](https://github.com/LanNguyenSi/repo-intelligence/blob/master/docs/architecture.md)
 
 ## Development
 
-Development requires Node 20.19+ or 22.12+ (stricter than the Node.js 20+ runtime requirement above).
+Requires Node.js 20.19+ or 22.12+ (stricter than the Node.js 20+ runtime requirement above; the project's dev dependencies pin this range).
 
 ```bash
-# Clone
 git clone https://github.com/LanNguyenSi/repo-intelligence.git
 cd repo-intelligence/packages/perf-drift
-
-# Install
 npm install
-
-# Run dev
-npm run dev -- track --build-time 45.2
-
-# Build
+npm run dev -- track --build-time 45.2   # tsx, no build needed
 npm run build
-
-# Test
 npm test
 ```
 
 ## License
 
-MIT
-
-## Related Tools
-
-- [bundlewatch](https://github.com/bundlewatch/bundlewatch) - Bundle size monitoring
-- [size-limit](https://github.com/ai/size-limit) - Bundle size limits
-- [Lighthouse](https://github.com/GoogleChrome/lighthouse) - Web performance auditing
+MIT. Status: alpha.
