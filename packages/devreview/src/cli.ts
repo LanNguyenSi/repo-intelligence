@@ -127,7 +127,7 @@ program
     }
   });
 
-// ESM entrypoint guard — allows importing cli.ts in tests without executing commander.
+// ESM entrypoint guard: allows importing cli.ts in tests without executing commander.
 // Compares real (symlink-resolved) paths so a linked or symlinked bin (npm link,
 // a manual symlink into dist/) still matches: process.argv[1] is the symlink
 // path, not the file the symlink points at, so a plain string comparison against

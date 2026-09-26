@@ -1,5 +1,5 @@
 // ============================================================================
-// devreview/src/cli.ts — ESM entrypoint guard under a symlinked invocation
+// devreview/src/cli.ts: ESM entrypoint guard under a symlinked invocation
 //
 // The guard used to compare fileURLToPath(import.meta.url) directly against
 // process.argv[1]. Under `npm link` (or any manual symlink into dist/),
@@ -25,8 +25,8 @@ let scratchDir: string;
 let linkedCli: string;
 
 beforeAll(() => {
-  // Build so dist/cli.js reflects current source; keeps this test hermetic
-  // and correct regardless of what ran before it in the same process.
+  // Build so dist/cli.js reflects current source, regardless of what ran
+  // before it in the same process. Note: this writes into the package's dist/.
   execFileSync('npm', ['run', 'build'], { cwd: packageRoot, stdio: 'pipe' });
 
   scratchDir = mkdtempSync(join(tmpdir(), 'devreview-entry-guard-'));
