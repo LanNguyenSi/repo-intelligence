@@ -17,6 +17,10 @@ import { buildIntoTempDist } from "./build-into-temp-dist.js";
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 
+// Runs a full tsc build; vitest's 5 s default test timeout is too tight
+// when several package builds run in parallel on a CI runner.
+const BUILD_TIMEOUT_MS = 120_000;
+
 describe("buildIntoTempDist: cleans up on tsc failure", () => {
   it("removes its temporary outDir when tsc fails, leaving no .entry-guard-build-* directory behind", () => {
     const brokenRoot = mkdtempSync(join(tmpdir(), "build-into-temp-dist-broken-"));
@@ -42,5 +46,5 @@ describe("buildIntoTempDist: cleans up on tsc failure", () => {
     } finally {
       rmSync(brokenRoot, { recursive: true, force: true });
     }
-  });
+  }, BUILD_TIMEOUT_MS);
 });
