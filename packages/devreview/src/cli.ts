@@ -5,12 +5,10 @@
 
 import 'dotenv/config';
 
-import { realpathSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
 import { Command } from 'commander';
 
 import { loadConfig, mergeConfig } from './config.js';
+import { isEntryPoint } from './is-entry-point.js';
 import { Reviewer } from './reviewer/reviewer.js';
 import { createWebhookServer } from './server/webhook.js';
 
@@ -127,26 +125,7 @@ program
     }
   });
 
-// ESM entrypoint guard: allows importing cli.ts in tests without executing commander.
-// Compares real (symlink-resolved) paths so a linked or symlinked bin (npm link,
-// a manual symlink into dist/) still matches: process.argv[1] is the symlink
-// path, not the file the symlink points at, so a plain string comparison against
-// fileURLToPath(import.meta.url) fails and the CLI silently exits 0.
-function isEntryPoint(): boolean {
-  const invokedPath = process.argv[1];
-
-  if (!invokedPath) {
-    return false;
-  }
-
-  try {
-    return realpathSync(invokedPath) === realpathSync(fileURLToPath(import.meta.url));
-  } catch {
-    return false;
-  }
-}
-
-if (isEntryPoint()) {
+if (isEntryPoint(import.meta.url)) {
   program.parseAsync().catch((error) => {
     exitWithError(error);
   });

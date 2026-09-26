@@ -3,12 +3,15 @@
 // ============================================================================
 
 import 'dotenv/config';
-import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.js';
+import { isEntryPoint } from './is-entry-point.js';
 import { createWebhookServer } from './server/webhook.js';
 
-// ESM entrypoint guard — allows importing server.ts in tests without executing bootstrap
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
+// ESM entrypoint guard: allows importing server.ts in tests without executing
+// bootstrap. Resolves symlinks (see is-entry-point.js) so a symlinked
+// invocation, or one reached through a symlinked parent directory, still
+// starts the server instead of silently skipping bootstrap.
+if (isEntryPoint(import.meta.url)) {
   const githubToken = process.env.GITHUB_TOKEN;
   const webhookSecret = process.env.WEBHOOK_SECRET;
 

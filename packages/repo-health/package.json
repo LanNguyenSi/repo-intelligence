@@ -9,8 +9,9 @@
     "repo-health": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
     "start": "node dist/cli.js"
   },

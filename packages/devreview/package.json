@@ -8,8 +8,9 @@
     "devreview": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "start": "node dist/server.js",
     "test": "vitest run --coverage",
     "test:no-coverage": "vitest run"

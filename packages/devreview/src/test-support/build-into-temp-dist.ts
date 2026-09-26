@@ -17,7 +17,7 @@
 // ============================================================================
 
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface TempBuildResult {
@@ -38,7 +38,10 @@ export interface TempBuildResult {
  * temp directory has no such ancestor. Nested under `packageRoot`, the
  * build still finds `packageRoot/node_modules` while never writing into
  * the package's own `dist/`. The `.entry-guard-build-` prefix is
- * gitignored so a leftover directory (interrupted run) is never staged.
+ * gitignored so a leftover directory is never staged. A tsc failure
+ * removes its own outDir before rethrowing, so a leftover directory
+ * can only come from a run interrupted before that cleanup runs (for
+ * example the process being killed mid-build).
  */
 export function buildIntoTempDist(packageRoot: string): TempBuildResult {
   const outDir = mkdtempSync(join(packageRoot, '.entry-guard-build-'));
@@ -51,6 +54,7 @@ export function buildIntoTempDist(packageRoot: string): TempBuildResult {
       encoding: 'utf8',
     });
   } catch (error) {
+    rmSync(outDir, { recursive: true, force: true });
     const failure = error as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
     const detail = [failure.stdout, failure.stderr].filter(Boolean).join('\n').trim();
     throw new Error(
