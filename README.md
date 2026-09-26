@@ -1,65 +1,59 @@
 # Repo Intelligence
 
-**Know which of your repos are healthy, which are drifting, and which are on fire, before the dashboards do.** Repo Intelligence is a toolkit for scoring repository hygiene, tracking CI and performance drift, and turning raw GitHub activity into the kind of signal a lead engineer actually uses on Monday morning.
+A toolkit of independent CLIs and a service that score repository hygiene, PR quality, CI health, and performance drift, for maintainers who want repo and CI health signals.
 
-## How this fits alongside depsight and agent-ops-dashboard
+[![CI](https://github.com/LanNguyenSi/repo-intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/LanNguyenSi/repo-intelligence/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/github/license/LanNguyenSi/repo-intelligence)](LICENSE)
 
-These three products overlap in spirit but solve different problems:
+## Overview
 
-- **[depsight](https://github.com/LanNguyenSi/depsight)** is the deployed, single-focus CVE and dependency-health product: one question ("am I shipping known-vulnerable code?") answered well.
-- **[agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard)** is the cross-repo operational view: a live fleet dashboard for many repositories at once.
-- **Repo Intelligence** is the toolkit layer: the CLIs and scorers (`repo-health`, `ci-insights`, `devreview`, `perf-drift`, `repo-dashboard`) that produce the underlying signals. depsight and agent-ops-dashboard consume and present; repo-intelligence computes.
-
-## Architecture
-
-The five packages split into CLI tools that compute signals directly and a Next.js analytics service (ci-insights) that ingests, stores, and exposes those signals to downstream consumers.
-
-```mermaid
-flowchart LR
-  subgraph src ["Data Sources"]
-    GH[("GitHub API")]
-    FS[("Local Filesystem")]
-  end
-
-  subgraph computes ["Computes — packages/"]
-    RH["repo-health<br/>packages/repo-health"]
-    DR["devreview<br/>packages/devreview"]
-    RD["repo-dashboard<br/>packages/repo-dashboard"]
-    PD["perf-drift<br/>packages/perf-drift"]
-    SQLITE[("SQLite<br/>~/.perf-drift/metrics.db")]
-    CIS["ci-insights<br/>packages/ci-insights"]
-    CIDB[("PostgreSQL<br/>prisma/schema.prisma")]
-  end
-
-  subgraph presents ["Consumers — present"]
-    DEP["depsight"]
-  end
-
-  GH --> DR
-  GH --> RD
-  GH --> CIS
-  FS --> RH
-  PD <--> SQLITE
-  CIS <--> CIDB
-  CIS --> DEP
-```
+repo-intelligence turns raw GitHub activity, CI logs, and local repository state into scores and trends: a hygiene checklist for a repo, a PR review score, CI failure/duration trends, and build-time/bundle-size drift over time. Each concern lives in its own package under `packages/`, installable and runnable on its own. See [docs/architecture.md](docs/architecture.md) for how the packages relate to each other and to the sibling products depsight and agent-ops-dashboard.
 
 ## Packages
 
-| Package | Description | Status |
-|---------|-------------|--------|
-| [devreview](packages/devreview) | PR review scoring engine with CLI and webhook server | beta |
+| Package | Purpose | Status |
+|---------|---------|--------|
+| [devreview](packages/devreview) | Automated GitHub PR code review agent with intelligent scoring | beta |
 | [ci-insights](packages/ci-insights) | CI/CD trends, failure rates, duration analysis | beta |
-| [repo-health](packages/repo-health) | Repository hygiene scorer (docs, tests, CI, license) | beta |
-| [repo-dashboard](packages/repo-dashboard) | CLI dashboard for PRs, pipelines, issues across repos | beta |
-| [perf-drift](packages/perf-drift) | Build time, bundle size, and test duration tracking | alpha |
+| [repo-health](packages/repo-health) | Repository health checker: scores hygiene, docs, CI, best practices | beta |
+| [repo-dashboard](packages/repo-dashboard) | CLI dashboard for GitHub repositories: PRs, pipelines, issues at a glance | beta |
+| [perf-drift](packages/perf-drift) | Track build times, bundle sizes, and test duration to detect performance regressions | alpha |
 
-## Workspace layout
+## Quick start
 
-There is no root `package.json` and no npm workspace. Each `packages/<name>` directory has its own `package.json`, lockfile, and tooling, and is installed, built, and tested independently (the CI matrix runs one job per package). Start from the per-package `README.md`:
+Prerequisites: git and Node.js (18+ for `repo-health` and `repo-dashboard`, 20+ for `perf-drift`, 22+ plus PostgreSQL 16 via Prisma for `ci-insights`; CI uses Node.js 22). The packages are not published to npm. There is no root install; each package is installed from its own directory. Using `repo-health` as an example:
 
 ```bash
-cd packages/<name>
+git clone https://github.com/LanNguyenSi/repo-intelligence.git
+cd repo-intelligence/packages/repo-health
 npm install
 npm run build
 ```
+
+This produces a CLI at `dist/cli.js`; run it with `node dist/cli.js`.
+
+## Usage
+
+```bash
+node dist/cli.js /path/to/your/repo --min-score 7
+```
+
+Scores the given repository (the path is optional and defaults to the current directory) and exits non-zero if the score is below 7 (useful as a CI gate). Run with `--json` for machine-readable output. See [packages/repo-health/README.md](packages/repo-health/README.md) for all flags, and each package's own README for its CLI or service usage.
+
+## Documentation
+
+- [packages/devreview/README.md](packages/devreview/README.md) - PR review scoring: CLI, webhook server, `.devreview.json` rules
+- [packages/ci-insights/README.md](packages/ci-insights/README.md) - CI/CD analytics service: setup, Prisma/PostgreSQL, prerequisites
+- [packages/repo-health/README.md](packages/repo-health/README.md) - hygiene checks, CLI flags, JSON output
+- [packages/repo-dashboard/README.md](packages/repo-dashboard/README.md) - terminal dashboard usage
+- [packages/perf-drift/README.md](packages/perf-drift/README.md) - metrics tracked and storage
+- [docs/architecture.md](docs/architecture.md) - how the packages fit together, and how repo-intelligence relates to depsight and agent-ops-dashboard
+- [CONTRIBUTING.md](CONTRIBUTING.md) - PR process and per-package scope
+- [SECURITY.md](SECURITY.md) - vulnerability reporting
+
+## Development and contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Each package builds, typechecks, lints, and tests independently (`npm run build` / `npm run typecheck` / `npm run lint` / `npm test`, availability varies by package); `.github/workflows/ci.yml` runs the same matrix in CI, one job per package.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
