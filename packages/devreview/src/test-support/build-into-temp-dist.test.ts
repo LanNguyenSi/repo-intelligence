@@ -17,7 +17,7 @@ import { buildIntoTempDist } from './build-into-temp-dist.js';
 
 const packageRoot = fileURLToPath(new URL('../..', import.meta.url));
 
-describe('buildIntoTempDist — cleans up on tsc failure', () => {
+describe('buildIntoTempDist: cleans up on tsc failure', () => {
   it('removes its temporary outDir when tsc fails, leaving no .entry-guard-build-* directory behind', () => {
     const brokenRoot = mkdtempSync(join(tmpdir(), 'build-into-temp-dist-broken-'));
 

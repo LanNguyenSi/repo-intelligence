@@ -7,7 +7,7 @@ import { loadConfig } from './config.js';
 import { isEntryPoint } from './is-entry-point.js';
 import { createWebhookServer } from './server/webhook.js';
 
-// ESM entrypoint guard — allows importing server.ts in tests without executing
+// ESM entrypoint guard: allows importing server.ts in tests without executing
 // bootstrap. Resolves symlinks (see is-entry-point.js) so a symlinked
 // invocation, or one reached through a symlinked parent directory, still
 // starts the server instead of silently skipping bootstrap.
