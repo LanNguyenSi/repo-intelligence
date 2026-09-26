@@ -114,4 +114,4 @@ docker build -t ci-insights .
 
 ## License
 
-Private package (not published). Status: beta.
+MIT, see the repository [LICENSE](https://github.com/LanNguyenSi/repo-intelligence/blob/master/LICENSE). Private package, not published. Status: beta.

@@ -46,18 +46,31 @@ repo-health --min-score 7
 Sample output:
 
 ```
-  🏥 repo-health - /path/to/my-project
+  🏥 repo-health — /path/to/my-project
 
   Grade: B ████████░░ 8.2/10
 
   📝 Documentation
     ✅ README        10/10  Comprehensive README (4617 bytes)
     ✅ License       10/10  License file: LICENSE
-    ❌ Contributing Guide 0/10  No CONTRIBUTING.md
+    ❌ Contributing   0/10  No CONTRIBUTING.md
        → Add CONTRIBUTING.md for open source projects
+
+  ⚙️  Code Quality
+    ✅ .gitignore    10/10  .gitignore is comprehensive
+    ✅ TypeScript    10/10  TypeScript with strict mode ✅
 
   🔄 CI/CD
     ✅ CI Pipeline   10/10  CI configured (GitHub Actions)
+
+  🧪 Testing
+    ✅ Tests         10/10  Test setup found
+
+  🔒 Security
+    ✅ Secret Safety 10/10  .env is in .gitignore ✅
+
+  🐳 Deployment
+    ✅ Docker        10/10  Dockerfile + Docker Compose ✅
 
   🤖 AI Context
     ❌ AI Context     0/10  No AI context files

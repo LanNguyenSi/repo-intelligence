@@ -1,6 +1,16 @@
 # perf-drift reference
 
-Command output samples, storage schema, and background on how perf-drift compares to related tools. See the package [README](../README.md) for install and the core commands.
+Command and flag reference, output samples, storage schema, and background on how perf-drift compares to related tools. See the package [README](../README.md) for install and the core commands.
+
+## Commands
+
+| Command | Options |
+|---|---|
+| `drift track` | `-b, --build-time <seconds>`, `-s, --bundle-size <bytes>`, `-t, --test-time <seconds>`, `-m, --message <text>`, `--auto` (detect metrics from common tools), `--run <command>` (run a command and record its duration as build time) |
+| `drift check` | `-t, --threshold <percent>` (defaults to the `threshold` in `.perfdriftrc.json`, 10), `--fail-on-regression` (exit 1 on regression; on by default), `--json` |
+| `drift report` | `-d, --days <number>` (last N days, e.g. `drift report --days 30`), `-l, --limit <number>` (last N measurements), `--json` |
+| `drift baseline` | `-m, --message <text>` |
+| `drift reset` | `--force` (skip the confirmation prompt) |
 
 ## Output examples
 

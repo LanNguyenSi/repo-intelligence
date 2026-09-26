@@ -11,6 +11,11 @@ PORT=3000
 DEVREVIEW_CONFIG=.devreview.json
 ```
 
+- `GITHUB_TOKEN`: required (or pass `--token`).
+- `WEBHOOK_SECRET`: required for `devreview server` (or pass `--secret`).
+- `PORT`: optional, default 3000 (or pass `--port`).
+- `DEVREVIEW_CONFIG`: read only by the container entrypoint `node dist/server.js`; the `devreview` CLI commands use `--config` instead.
+
 DevReview currently uses a GitHub token, not a GitHub App flow.
 
 ## `.devreview.json`

@@ -46,24 +46,30 @@ repo-dash LanNguyenSi --repos 20
 Sample output:
 
 ```
-  📊 repo-dashboard - LanNguyenSi
+  📊 repo-dashboard — LanNguyenSi
   3/21/2026, 9:30:00 AM
 
   Repositories (25 total, showing 10 most recent)
 
   🔓 telerithm TypeScript  ⭐2  5m ago
      AI-powered log analytics and debugging for self-hosted teams
-  🔒 web-app (no language)  1d ago
+  🔓 event-booking-system TypeScript  12h ago
+     Full-stack event booking platform
+  🔒 web-app —  1d ago
 
   Open Pull Requests (2)
 
   #1 feat: Add nextjs-fullstack blueprint
      scaffoldkit by LanNguyenSi  2d ago
+  #1 feat: Add projects to website
+     mywebsite by LanNguyenSi  1d ago
 
   Pipeline Status
   8 passing · 1 failed · 0 running
 
+  ❌ some-repo Fix typo  3h ago
   ✅ telerithm fix: Frontend tests  30m ago
+  ✅ event-booking-system fix: Responsive dashboard  12h ago
 
   ──────────────────────────────────────────────────
   Summary: 25 repos · 2 open PRs · 1 failed

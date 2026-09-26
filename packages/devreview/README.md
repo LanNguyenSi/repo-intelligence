@@ -4,7 +4,7 @@ Automated GitHub pull request reviews with a scoring engine, CLI commands, and a
 
 ## Overview
 
-DevReview reviews a pull request from its GitHub URL and produces category scores for code quality, architecture, testing, documentation, and best practices. It can post the result back to GitHub as a PR review, or run as a webhook server that reacts to `pull_request` events automatically. Scoring rules are configurable per repository via `.devreview.json`.
+DevReview reviews a pull request from its GitHub URL and produces category scores for code quality, architecture, testing, documentation, and best practices. It can post the result back to GitHub as a PR review, or run as a webhook server that reacts to `pull_request` events automatically. Scoring rules are configurable via a `.devreview.json` in the directory devreview runs from, or a file passed with `--config <path>`.
 
 ## Key features
 

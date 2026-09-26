@@ -31,7 +31,7 @@ The build produces a CLI at `dist/cli.js`. Run it with `node`:
 node dist/cli.js track --build-time 45.2
 ```
 
-The examples below use the short `drift` name for readability; substitute `node dist/cli.js` for `drift` (or a shell alias of your own) since the package is not published.
+To get a global `drift` command, run `npm link` from the package directory. The examples below use the short `drift` name; without the link, substitute `node dist/cli.js`.
 
 ## Usage
 
