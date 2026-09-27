@@ -1,0 +1,68 @@
+name: DevReview Docker
+
+# Builds the devreview package's Docker image and smoke-checks it. No
+# workflow in this repo previously exercised the Dockerfile, so a
+# build-config drift (build script vs. Dockerfile COPY list) stayed
+# green through CI and was only caught in review. This job is
+# path-filtered to the devreview package (plus its own workflow file,
+# so an edit to the job itself is checked too) since the Dockerfile's
+# build context copies only files inside packages/devreview: no
+# root-level file is part of the image build here. No image is pushed.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - packages/devreview/**
+      - .github/workflows/devreview-docker.yml
+  pull_request:
+    branches: [master]
+    paths:
+      - packages/devreview/**
+      - .github/workflows/devreview-docker.yml
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/devreview
+    env:
+      IMAGE_TAG: devreview-ci:${{ github.run_id }}
+      CONTAINER_NAME: devreview-ci-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build image
+        run: docker build -t "$IMAGE_TAG" .
+
+      - name: Start container
+        run: |
+          docker run -d --name "$CONTAINER_NAME" -p 3000:3000 \
+            -e GITHUB_TOKEN=dummy-token \
+            -e WEBHOOK_SECRET=dummy-secret \
+            "$IMAGE_TAG"
+
+      - name: Smoke check GET /health
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -sf http://localhost:3000/health > /tmp/devreview-health.json; then
+              break
+            fi
+            sleep 1
+          done
+          echo "response:"
+          cat /tmp/devreview-health.json
+          echo
+          grep -q '"status":"ok"' /tmp/devreview-health.json
+
+      - name: Container logs
+        if: failure()
+        run: docker logs "$CONTAINER_NAME" || true
+
+      - name: Clean up container and image
+        if: always()
+        run: |
+          docker rm -f "$CONTAINER_NAME" || true
+          docker rmi -f "$IMAGE_TAG" || true
