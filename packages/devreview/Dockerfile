@@ -1,5 +1,5 @@
-# The trailing "node:22-alpine" tag is kept next to the digest so
-# Dependabot's docker ecosystem can find and update it; see
+# The node:22-alpine tag is kept in front of the digest so Dependabot's
+# docker ecosystem can refresh the digest for that tag; see
 # .github/dependabot.yml.
 FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS builder
 WORKDIR /app

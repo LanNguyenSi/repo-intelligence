@@ -9,14 +9,15 @@ name: DevReview Docker
 # build context copies only files inside packages/devreview: no
 # root-level file is part of the image build here. No image is pushed.
 #
-# The Dockerfile's node:22-alpine base is pinned by digest (with the
-# tag kept alongside it) instead of floating, so an upstream base
-# image change cannot silently break the build or the /health smoke
-# between devreview PRs. .github/dependabot.yml watches that pinned
-# digest (docker ecosystem, packages/devreview) and opens a PR when a
-# new digest is published for the tag; that PR touches the Dockerfile,
-# so it runs this same job through the path filter above and a human
-# reviews the result before merge. A weekly schedule trigger was
+# The Dockerfile's node:22-alpine base is pinned by digest (tag in
+# front of the digest) instead of floating, so an upstream base image
+# change cannot silently break the build or the /health smoke between
+# devreview PRs. .github/dependabot.yml watches that pinned digest
+# (docker ecosystem, packages/devreview, Node major updates ignored so
+# 22-alpine stays the update target) and opens a PR when a new digest
+# is published for the tag; Node major upgrades are done by hand. That
+# PR touches the Dockerfile, so it runs this same job through the path
+# filter above and a human reviews the result before merge. A weekly schedule trigger was
 # considered instead, but it only runs on the default branch, a
 # scheduled failure notifies only the workflow's last editor, and
 # nobody watches it run; the digest-pin PR route turns drift into a
