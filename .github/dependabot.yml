@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Keeps the devreview Dockerfile's node:22-alpine base image digest
+  # current. The digest is pinned in the Dockerfile itself (with the
+  # tag kept alongside it); Dependabot opens a PR when the digest for
+  # that tag changes, which runs the existing devreview-docker.yml job
+  # through its packages/devreview/** path filter.
+  - package-ecosystem: docker
+    directory: /packages/devreview
+    schedule:
+      interval: weekly
