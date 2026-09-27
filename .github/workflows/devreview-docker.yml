@@ -14,14 +14,16 @@ name: DevReview Docker
 # change cannot silently break the build or the /health smoke between
 # devreview PRs. .github/dependabot.yml watches that pinned digest
 # (docker ecosystem, packages/devreview, Node major updates ignored so
-# 22-alpine stays the update target) and opens a PR when a new digest
-# is published for the tag; Node major upgrades are done by hand. That
-# PR touches the Dockerfile, so it runs this same job through the path
-# filter above and a human reviews the result before merge. A weekly schedule trigger was
-# considered instead, but it only runs on the default branch, a
-# scheduled failure notifies only the workflow's last editor, and
-# nobody watches it run; the digest-pin PR route turns drift into a
-# reviewed, path-filtered CI run instead of an unattended one.
+# 22-alpine stays the update target) and is expected to open a PR when
+# a new digest is published for the tag (see the caveat there); Node
+# major upgrades are done by hand. That PR touches the Dockerfile, so
+# it runs this same job through the path filter above and a human
+# reviews the result before merge. A weekly schedule trigger was
+# considered instead: it catches drift on the same weekly cadence, but
+# it only runs on the default branch, a scheduled failure notifies only
+# the workflow's last editor, and nobody watches it run; the digest-pin
+# PR route surfaces drift as a reviewed, path-filtered CI run instead
+# of an unattended one.
 
 on:
   push:

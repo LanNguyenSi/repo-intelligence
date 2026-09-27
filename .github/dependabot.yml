@@ -8,7 +8,11 @@ updates:
   # ignored, 22-alpine stays the latest candidate and Dependabot opens a
   # digest refresh PR when that tag moves; the PR touches the Dockerfile,
   # so it runs devreview-docker.yml through its packages/devreview/**
-  # path filter. Node major upgrades are done by hand.
+  # path filter. Node major upgrades are done by hand. The digest-only
+  # refresh is expected from dependabot-core's docker updater but not yet
+  # observed on GitHub's hosted Dependabot (a server-side experiment can
+  # suppress digest-only refreshes for versioned tags); if no refresh PR
+  # follows a 22-alpine republish, add a weekly schedule to the job.
   - package-ecosystem: docker
     directory: /packages/devreview
     schedule:
