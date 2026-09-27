@@ -21,6 +21,13 @@ on:
       - packages/devreview/**
       - .github/workflows/devreview-docker.yml
 
+permissions:
+  contents: read
+
+concurrency:
+  group: devreview-docker-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -55,7 +62,7 @@ jobs:
           echo "response:"
           cat /tmp/devreview-health.json
           echo
-          grep -q '"status":"ok"' /tmp/devreview-health.json
+          jq -e '.status == "ok"' /tmp/devreview-health.json > /dev/null
 
       - name: Container logs
         if: failure()
