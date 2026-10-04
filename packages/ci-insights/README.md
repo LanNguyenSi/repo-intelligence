@@ -4,14 +4,14 @@ CI/CD intelligence dashboard for teams tracking GitHub Actions health across rep
 
 ## Overview
 
-ci-insights ingests GitHub Actions workflow run history via the GitHub API, stores it in PostgreSQL, and exposes analytics endpoints for fail rates, build-time percentiles, flaky jobs, bottlenecks, and cross-repo overviews. It is a Next.js 16 (App Router) + React 19 + TypeScript app, using Prisma over PostgreSQL 16, Octokit for the GitHub API, Tailwind CSS 4 for styling, and Vitest for tests. It runs as a small service, either standalone or as the CI Health data source behind [depsight](https://github.com/LanNguyenSi/depsight).
+ci-insights ingests GitHub Actions workflow run history via the GitHub API, stores it in PostgreSQL, and exposes analytics endpoints for fail rates, build-time percentiles, flaky jobs, bottlenecks, and cross-repo overviews. It is a Next.js 16 (App Router) + React 19 + TypeScript app, using Prisma over PostgreSQL 16, Octokit for the GitHub API, Tailwind CSS 4 for styling, and Vitest for tests. It runs as a standalone service with its own database. It is not a data source for [depsight](https://github.com/LanNguyenSi/depsight), which syncs GitHub Actions run data itself.
 
 ## Key features
 
 - Idempotent ingestion of repos, workflows, and runs from the GitHub Actions API
 - Analytics: fail rate, P50/P95 build times, flaky job detection (SHA-retry and high-fail-rate heuristics), longest-running jobs, cross-repo overview
 - Sync scheduler with a 3-concurrent limit
-- Docker Compose stack (PostgreSQL + app) with automatic Prisma migrations on startup
+- Docker Compose stack (PostgreSQL + app) that attempts `prisma db push` on startup (errors are suppressed; run `make migrate` against the database if tables are missing)
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ echo 'DATABASE_URL="postgresql://postgres:password@localhost:5432/ci_insights"' 
 echo 'GITHUB_TOKEN="ghp_your_token_here"' >> .env
 echo 'SYNC_API_KEY="generate_a_long_random_secret"' >> .env
 
-# Start everything (DB + deps + migrations + dev server)
+# Start everything (DB + deps + schema push + dev server)
 make dev
 ```
 
@@ -70,13 +70,13 @@ API endpoints, all under `/api/v1/`:
 ## Documentation
 
 - [Repository architecture](https://github.com/LanNguyenSi/repo-intelligence/blob/master/docs/architecture.md)
-- [depsight](https://github.com/LanNguyenSi/depsight): once ci-insights is running and repos are synced, depsight surfaces a CI Health tab for those repositories
+- [depsight](https://github.com/LanNguyenSi/depsight): a separate product that syncs GitHub Actions run data itself; it does not read from ci-insights
 
 ## Development
 
 | Command | Description |
 |---------|-------------|
-| `make dev` | Full local setup: DB + deps + migrate + dev server |
+| `make dev` | Full local setup: DB + deps + schema push + dev server |
 | `make dev-down` | Stop all services |
 | `make db` | Start only PostgreSQL |
 | `make db-reset` | Drop and recreate database |
@@ -98,11 +98,13 @@ lib/
   sync/             Sync scheduler (3-concurrent limit)
   analytics/        Fail-rate, build-times, flaky, bottleneck, historical, cross-repo
   utils/            Validation, JSON helpers
-prisma/             Schema + migrations
+prisma/             Schema (applied with `prisma db push`, no migrations directory)
 tests/              Unit, integration, edge-case tests
 ```
 
 Docker:
+
+The compose file sets only `DATABASE_URL` for the app container. Syncing needs `GITHUB_TOKEN` and `SYNC_API_KEY` as well: without `SYNC_API_KEY` the POST sync endpoints reject every request, and without `GITHUB_TOKEN` requests to GitHub go unauthenticated (public repositories only, low rate limit). Pass them to the container, for example in the `app` service's `environment` block or an `env_file`, before relying on sync.
 
 ```bash
 # Build and start everything (PostgreSQL + app)
