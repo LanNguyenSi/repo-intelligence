@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "start": "node dist/cli.js"
   },
   "keywords": [
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "@vitest/coverage-v8": "4.1.11",
     "typescript": "^5.9.0",
     "vitest": "^4.1.11"
   },

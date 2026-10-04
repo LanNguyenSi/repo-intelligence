@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "format": "prettier --write src/"
   },
   "keywords": [
@@ -32,6 +32,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.13.10",
+    "@vitest/coverage-v8": "4.1.11",
     "prettier": "^3.8.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",

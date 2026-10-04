@@ -13,8 +13,16 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { Reviewer } from './reviewer.js';
+import type { Scorer } from './scorer.js';
+import type { ReviewFormatter } from './formatter.js';
+import type { GitHubClient } from '../github/client.js';
 import type { ReviewScore, PRContext } from '../types.js';
 import { DEFAULT_CONFIG } from '../types.js';
+
+// Injected-collaborator shape the Reviewer constructor seam accepts. Each mock
+// factory below `satisfies` a Pick of the real class, so a typo'd method name
+// fails the typecheck; the single cast to this type happens at injection.
+type ReviewerDeps = NonNullable<ConstructorParameters<typeof Reviewer>[2]>;
 
 // ---------------------------------------------------------------------------
 // Mock collaborator factories
@@ -25,14 +33,14 @@ function makeScore(overall = 8): ReviewScore {
 }
 
 function makeMockScorer(score = makeScore()) {
-  return { scorePR: vi.fn().mockReturnValue(score) };
+  return { scorePR: vi.fn().mockReturnValue(score) } satisfies Partial<Pick<Scorer, 'scorePR'>>;
 }
 
 function makeMockFormatter() {
   return {
     formatReview: vi.fn().mockReturnValue('## Review markdown'),
     formatTerminal: vi.fn().mockReturnValue('Terminal output'),
-  };
+  } satisfies Partial<Pick<ReviewFormatter, 'formatReview' | 'formatTerminal'>>;
 }
 
 function makeMockGitHub(prContext?: Partial<PRContext>) {
@@ -52,7 +60,7 @@ function makeMockGitHub(prContext?: Partial<PRContext>) {
     getPRContext: vi.fn().mockResolvedValue(context),
     postReview: vi.fn().mockResolvedValue(undefined),
     getAIContext: vi.fn().mockResolvedValue({}),
-  };
+  } satisfies Partial<Pick<GitHubClient, 'getPRContext' | 'postReview' | 'getAIContext'>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +74,7 @@ describe('Reviewer.reviewPR', () => {
       files: [{ filename: 'src/feature.ts', status: 'added', additions: 40, deletions: 0 }],
     });
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     const result = await reviewer.reviewPR('acme', 'rocket', 42);
 
     expect(github.getPRContext).toHaveBeenCalledWith('acme', 'rocket', 42);
@@ -96,7 +104,7 @@ describe('Reviewer — ignored file filtering via matchesGlob', () => {
     });
 
     // DEFAULT_CONFIG.ignore includes 'package-lock.json'
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewPR('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
@@ -115,7 +123,7 @@ describe('Reviewer — ignored file filtering via matchesGlob', () => {
       files: [{ filename: 'src/main.ts', status: 'added', additions: 20, deletions: 0 }],
     });
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewPR('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
@@ -133,7 +141,7 @@ describe('Reviewer — ignored file filtering via matchesGlob', () => {
     });
 
     const configWithDistIgnore = { ...DEFAULT_CONFIG, ignore: ['dist/**'] };
-    const reviewer = new Reviewer('token', configWithDistIgnore, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', configWithDistIgnore, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewPR('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
@@ -152,7 +160,7 @@ describe('Reviewer.reviewAndComment', () => {
     const formatter = makeMockFormatter();
     const github = makeMockGitHub();
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     const result = await reviewer.reviewAndComment('acme', 'rocket', 42);
 
     expect(github.postReview).toHaveBeenCalledOnce();
@@ -171,7 +179,7 @@ describe('Reviewer.reviewAndComment', () => {
     const formatter = makeMockFormatter();
     const github = makeMockGitHub();
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewAndComment('acme', 'rocket', 42);
 
     const [, , , , event] = (github.postReview as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -189,7 +197,7 @@ describe('Reviewer.reviewAndComment', () => {
     });
 
     // DEFAULT_CONFIG.ignore includes '*.lock'
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewAndComment('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
