@@ -14,11 +14,12 @@ export default defineConfig({
       thresholds: {
         // Ratcheted a few points below the measured baseline so a real
         // regression fails `npm test` while normal churn has headroom.
-        // Low floor: src/display.ts has no real tests yet; raise it when they land.
-        statements: 33,
-        branches: 39,
-        functions: 30,
-        lines: 37,
+        // src/display.ts is covered by display.output.test.ts; the floors sit
+        // about three points below the measured values.
+        statements: 91,
+        branches: 78,
+        functions: 87,
+        lines: 92,
       },
     },
   },

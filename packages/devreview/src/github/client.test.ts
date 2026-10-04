@@ -1,6 +1,16 @@
+import type { Octokit } from '@octokit/rest';
 import { describe, expect, it, vi } from 'vitest';
 
 import { GitHubClient } from './client.js';
+
+// The namespaces and methods GitHubClient reads. Each mock below is checked
+// against the real Octokit surface via `satisfies`, so a typo'd method name
+// fails the typecheck; the single cast to Octokit happens at injection.
+type OctokitMockShape = {
+  paginate: unknown;
+  pulls: Partial<Record<keyof Octokit['pulls'], unknown>>;
+  repos: Partial<Record<keyof Octokit['repos'], unknown>>;
+};
 
 describe('GitHubClient', () => {
   it('paginates all files for PR context', async () => {
@@ -24,9 +34,9 @@ describe('GitHubClient', () => {
       repos: {
         getContent: vi.fn(),
       },
-    };
+    } satisfies OctokitMockShape;
 
-    const client = new GitHubClient('token', octokit as never);
+    const client = new GitHubClient('token', octokit as unknown as Octokit);
     const context = await client.getPRContext('acme', 'rocket', 7);
 
     expect(octokit.paginate).toHaveBeenCalledWith(octokit.pulls.listFiles, {
@@ -59,9 +69,9 @@ describe('GitHubClient', () => {
           throw new Error('missing');
         }),
       },
-    };
+    } satisfies OctokitMockShape;
 
-    const client = new GitHubClient('token', octokit as never);
+    const client = new GitHubClient('token', octokit as unknown as Octokit);
     const context = await client.getAIContext('acme', 'rocket');
 
     expect(context.architecture).toBe('System overview');
