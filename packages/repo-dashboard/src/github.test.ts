@@ -13,8 +13,15 @@ import { GitHubDashboard } from "./github.js";
 // Octokit mock factory
 // ---------------------------------------------------------------------------
 
-function makeOctokit(overrides: Record<string, unknown> = {}) {
-  return {
+// The namespaces/methods GitHubDashboard uses; each mock key is checked against
+// the real Octokit surface via `satisfies`, so a typo'd method name fails the
+// typecheck. The single cast to Octokit happens at injection.
+type OctokitMockShape = {
+  [N in "repos" | "pulls" | "actions"]: Partial<Record<keyof Octokit[N], unknown>>;
+};
+
+function makeOctokit(overrides: Partial<OctokitMockShape> = {}) {
+  const base = {
     repos: {
       listForUser: vi.fn().mockResolvedValue({
         data: [
@@ -41,8 +48,8 @@ function makeOctokit(overrides: Record<string, unknown> = {}) {
         data: { workflow_runs: [] },
       }),
     },
-    ...overrides,
-  };
+  } satisfies OctokitMockShape;
+  return { ...base, ...overrides };
 }
 
 // ---------------------------------------------------------------------------

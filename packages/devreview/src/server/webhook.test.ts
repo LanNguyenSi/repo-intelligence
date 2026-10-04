@@ -27,10 +27,12 @@ import type { Reviewer } from '../reviewer/reviewer.js';
 const mockVerify = vi.fn<(payload: string, signature: string) => Promise<boolean>>();
 const mockReviewAndComment = vi.fn();
 
-const mockWebhooks = { verify: mockVerify };
+// `satisfies` checks each mock's keys against the real class, so a typo'd
+// method name fails the typecheck instead of silently passing.
+const mockWebhooks = { verify: mockVerify } satisfies Partial<Pick<Webhooks, 'verify'>>;
 const mockReviewer = {
   reviewAndComment: mockReviewAndComment,
-} as unknown as Pick<Reviewer, 'reviewAndComment'>;
+} satisfies Partial<Pick<Reviewer, 'reviewAndComment'>>;
 
 let server: http.Server;
 let baseUrl: string;
@@ -45,7 +47,7 @@ beforeAll(() => {
   const { app } = createWebhookServer({
     githubToken: 'test-token',
     webhookSecret: 'test-secret',
-    _webhooks: mockWebhooks as unknown as Pick<Webhooks, 'verify'>,
+    _webhooks: mockWebhooks as Pick<Webhooks, 'verify'>,
     _reviewer: mockReviewer,
   });
   server = http.createServer(app);

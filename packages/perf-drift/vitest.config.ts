@@ -10,7 +10,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/**/*.d.ts", "src/test-support/**"],
+      exclude: ["src/**/*.test.ts", "src/**/*.d.ts"],
       thresholds: {
         // Ratcheted a few points below the measured baseline so a real
         // regression fails `npm test` while normal churn has headroom.

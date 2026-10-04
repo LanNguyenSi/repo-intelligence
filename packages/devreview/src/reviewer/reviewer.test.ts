@@ -13,10 +13,15 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { Reviewer } from './reviewer.js';
+import type { Scorer } from './scorer.js';
+import type { ReviewFormatter } from './formatter.js';
+import type { GitHubClient } from '../github/client.js';
 import type { ReviewScore, PRContext } from '../types.js';
 import { DEFAULT_CONFIG } from '../types.js';
 
-// Injected-collaborator shape the Reviewer constructor seam accepts.
+// Injected-collaborator shape the Reviewer constructor seam accepts. Each mock
+// factory below `satisfies` a Pick of the real class, so a typo'd method name
+// fails the typecheck; the single cast to this type happens at injection.
 type ReviewerDeps = NonNullable<ConstructorParameters<typeof Reviewer>[2]>;
 
 // ---------------------------------------------------------------------------
@@ -28,14 +33,14 @@ function makeScore(overall = 8): ReviewScore {
 }
 
 function makeMockScorer(score = makeScore()) {
-  return { scorePR: vi.fn().mockReturnValue(score) };
+  return { scorePR: vi.fn().mockReturnValue(score) } satisfies Partial<Pick<Scorer, 'scorePR'>>;
 }
 
 function makeMockFormatter() {
   return {
     formatReview: vi.fn().mockReturnValue('## Review markdown'),
     formatTerminal: vi.fn().mockReturnValue('Terminal output'),
-  };
+  } satisfies Partial<Pick<ReviewFormatter, 'formatReview' | 'formatTerminal'>>;
 }
 
 function makeMockGitHub(prContext?: Partial<PRContext>) {
@@ -55,7 +60,7 @@ function makeMockGitHub(prContext?: Partial<PRContext>) {
     getPRContext: vi.fn().mockResolvedValue(context),
     postReview: vi.fn().mockResolvedValue(undefined),
     getAIContext: vi.fn().mockResolvedValue({}),
-  };
+  } satisfies Partial<Pick<GitHubClient, 'getPRContext' | 'postReview' | 'getAIContext'>>;
 }
 
 // ---------------------------------------------------------------------------
