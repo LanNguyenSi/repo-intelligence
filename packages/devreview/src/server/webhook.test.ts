@@ -16,7 +16,9 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+import type { Webhooks } from '@octokit/webhooks';
 import { createWebhookServer } from './webhook.js';
+import type { Reviewer } from '../reviewer/reviewer.js';
 
 // ---------------------------------------------------------------------------
 // Shared mock objects (injected via _deps seam)
@@ -28,7 +30,7 @@ const mockReviewAndComment = vi.fn();
 const mockWebhooks = { verify: mockVerify };
 const mockReviewer = {
   reviewAndComment: mockReviewAndComment,
-} as never;
+} as unknown as Pick<Reviewer, 'reviewAndComment'>;
 
 let server: http.Server;
 let baseUrl: string;
@@ -43,7 +45,7 @@ beforeAll(() => {
   const { app } = createWebhookServer({
     githubToken: 'test-token',
     webhookSecret: 'test-secret',
-    _webhooks: mockWebhooks as never,
+    _webhooks: mockWebhooks as unknown as Pick<Webhooks, 'verify'>,
     _reviewer: mockReviewer,
   });
   server = http.createServer(app);

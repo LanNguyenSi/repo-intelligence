@@ -6,6 +6,7 @@
 // ============================================================================
 
 import { describe, it, expect, vi } from "vitest";
+import type { Octokit } from "@octokit/rest";
 import { GitHubDashboard } from "./github.js";
 
 // ---------------------------------------------------------------------------
@@ -50,7 +51,7 @@ function makeOctokit(overrides: Record<string, unknown> = {}) {
 describe("GitHubDashboard.getRepos", () => {
   it("returns mapped RepoInfo array from Octokit response", async () => {
     const octokit = makeOctokit();
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
 
     const repos = await dashboard.getRepos("acme");
 
@@ -95,7 +96,7 @@ describe("GitHubDashboard.getRepos", () => {
         }),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
     const repos = await dashboard.getRepos("acme");
 
     expect(repos[0].description).toBeNull();
@@ -126,7 +127,7 @@ describe("GitHubDashboard.getOpenPRs", () => {
         }),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
 
     const prs = await dashboard.getOpenPRs("acme", ["rocket"]);
 
@@ -159,7 +160,7 @@ describe("GitHubDashboard.getOpenPRs", () => {
         }),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
     const prs = await dashboard.getOpenPRs("acme", ["rocket"]);
     expect(prs[0].state).toBe("draft");
     expect(prs[0].draft).toBe(true);
@@ -171,7 +172,7 @@ describe("GitHubDashboard.getOpenPRs", () => {
         list: vi.fn().mockRejectedValue(new Error("403 Forbidden")),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
     // Should not throw — just skips the failing repo
     const prs = await dashboard.getOpenPRs("acme", ["private-repo"]);
     expect(prs).toHaveLength(0);
@@ -195,7 +196,7 @@ describe("GitHubDashboard.getOpenPRs", () => {
         }),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
     const prs = await dashboard.getOpenPRs("acme", ["rocket"]);
     expect(prs[0].author).toBe("unknown");
   });
@@ -225,7 +226,7 @@ describe("GitHubDashboard.getLatestWorkflowRuns", () => {
         }),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
     const runs = await dashboard.getLatestWorkflowRuns("acme", ["rocket"]);
 
     expect(runs).toHaveLength(1);
@@ -247,7 +248,7 @@ describe("GitHubDashboard.getLatestWorkflowRuns", () => {
         }),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
     const runs = await dashboard.getLatestWorkflowRuns("acme", ["rocket"]);
     expect(runs).toHaveLength(0);
   });
@@ -258,7 +259,7 @@ describe("GitHubDashboard.getLatestWorkflowRuns", () => {
         listWorkflowRunsForRepo: vi.fn().mockRejectedValue(new Error("no actions")),
       },
     });
-    const dashboard = new GitHubDashboard("token", octokit as never);
+    const dashboard = new GitHubDashboard("token", octokit as unknown as Octokit);
     const runs = await dashboard.getLatestWorkflowRuns("acme", ["private"]);
     expect(runs).toHaveLength(0);
   });

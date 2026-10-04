@@ -16,6 +16,9 @@ import { Reviewer } from './reviewer.js';
 import type { ReviewScore, PRContext } from '../types.js';
 import { DEFAULT_CONFIG } from '../types.js';
 
+// Injected-collaborator shape the Reviewer constructor seam accepts.
+type ReviewerDeps = NonNullable<ConstructorParameters<typeof Reviewer>[2]>;
+
 // ---------------------------------------------------------------------------
 // Mock collaborator factories
 // ---------------------------------------------------------------------------
@@ -66,7 +69,7 @@ describe('Reviewer.reviewPR', () => {
       files: [{ filename: 'src/feature.ts', status: 'added', additions: 40, deletions: 0 }],
     });
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     const result = await reviewer.reviewPR('acme', 'rocket', 42);
 
     expect(github.getPRContext).toHaveBeenCalledWith('acme', 'rocket', 42);
@@ -96,7 +99,7 @@ describe('Reviewer — ignored file filtering via matchesGlob', () => {
     });
 
     // DEFAULT_CONFIG.ignore includes 'package-lock.json'
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewPR('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
@@ -115,7 +118,7 @@ describe('Reviewer — ignored file filtering via matchesGlob', () => {
       files: [{ filename: 'src/main.ts', status: 'added', additions: 20, deletions: 0 }],
     });
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewPR('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
@@ -133,7 +136,7 @@ describe('Reviewer — ignored file filtering via matchesGlob', () => {
     });
 
     const configWithDistIgnore = { ...DEFAULT_CONFIG, ignore: ['dist/**'] };
-    const reviewer = new Reviewer('token', configWithDistIgnore, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', configWithDistIgnore, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewPR('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
@@ -152,7 +155,7 @@ describe('Reviewer.reviewAndComment', () => {
     const formatter = makeMockFormatter();
     const github = makeMockGitHub();
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     const result = await reviewer.reviewAndComment('acme', 'rocket', 42);
 
     expect(github.postReview).toHaveBeenCalledOnce();
@@ -171,7 +174,7 @@ describe('Reviewer.reviewAndComment', () => {
     const formatter = makeMockFormatter();
     const github = makeMockGitHub();
 
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewAndComment('acme', 'rocket', 42);
 
     const [, , , , event] = (github.postReview as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -189,7 +192,7 @@ describe('Reviewer.reviewAndComment', () => {
     });
 
     // DEFAULT_CONFIG.ignore includes '*.lock'
-    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as never);
+    const reviewer = new Reviewer('token', DEFAULT_CONFIG, { scorer, formatter, github } as unknown as ReviewerDeps);
     await reviewer.reviewAndComment('acme', 'rocket', 42);
 
     const calledContext = (scorer.scorePR as ReturnType<typeof vi.fn>).mock.calls[0][0] as PRContext;
