@@ -11,7 +11,7 @@ ci-insights ingests GitHub Actions workflow run history via the GitHub API, stor
 - Idempotent ingestion of repos, workflows, and runs from the GitHub Actions API
 - Analytics: fail rate, P50/P95 build times, flaky job detection (SHA-retry and high-fail-rate heuristics), longest-running jobs, cross-repo overview
 - Sync scheduler with a 3-concurrent limit
-- Docker Compose stack (PostgreSQL + app) with the Prisma schema applied (`prisma db push`) on startup
+- Docker Compose stack (PostgreSQL + app) that attempts `prisma db push` on startup (errors are suppressed; run `make migrate` against the database if tables are missing)
 
 ## Prerequisites
 
@@ -104,7 +104,7 @@ tests/              Unit, integration, edge-case tests
 
 Docker:
 
-The compose file sets only `DATABASE_URL` for the app container. Syncing needs `GITHUB_TOKEN` and `SYNC_API_KEY` as well: without `SYNC_API_KEY` the sync endpoints reject every request, and without `GITHUB_TOKEN` the scheduler cannot fetch from GitHub. Pass them to the container, for example in the `app` service's `environment` block or an `env_file`, before relying on sync.
+The compose file sets only `DATABASE_URL` for the app container. Syncing needs `GITHUB_TOKEN` and `SYNC_API_KEY` as well: without `SYNC_API_KEY` the POST sync endpoints reject every request, and without `GITHUB_TOKEN` requests to GitHub go unauthenticated (public repositories only, low rate limit). Pass them to the container, for example in the `app` service's `environment` block or an `env_file`, before relying on sync.
 
 ```bash
 # Build and start everything (PostgreSQL + app)
