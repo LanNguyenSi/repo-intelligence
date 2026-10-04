@@ -21,17 +21,12 @@ flowchart LR
     CIDB[("PostgreSQL<br/>prisma/schema.prisma")]
   end
 
-  subgraph presents ["Consumers - present"]
-    DEP["depsight"]
-  end
-
   GH --> DR
   GH --> RD
   GH --> CIS
   FS --> RH
   PD <--> SQLITE
   CIS <--> CIDB
-  CIS --> DEP
 ```
 
 ## Relation to depsight and agent-ops-dashboard

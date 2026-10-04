@@ -2,7 +2,7 @@
 
 # ── Local Development ────────────────────────────────────────
 
-dev: ## Full local setup: DB + deps + migrate + dev server
+dev: ## Full local setup: DB + deps + schema push + dev server
 	@echo "Starting PostgreSQL..."
 	docker compose up -d db
 	@echo "Waiting for PostgreSQL to be ready..."
@@ -35,7 +35,7 @@ db-reset: ## Drop and recreate database
 	$(MAKE) db
 	npx prisma db push
 
-migrate: ## Apply Prisma migrations
+migrate: ## Push the Prisma schema to the database (prisma db push, no migration files)
 	npx prisma db push
 
 generate: ## Generate Prisma client
