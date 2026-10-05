@@ -11,7 +11,7 @@ ci-insights ingests GitHub Actions workflow run history via the GitHub API, stor
 - Idempotent ingestion of repos, workflows, and runs from the GitHub Actions API
 - Analytics: fail rate, P50/P95 build times, flaky job detection (SHA-retry and high-fail-rate heuristics), longest-running jobs, cross-repo overview
 - Sync scheduler with a 3-concurrent limit
-- Docker Compose stack (PostgreSQL + app) that attempts `prisma db push` on startup (errors are suppressed; run `make migrate` against the database if tables are missing)
+- Docker Compose stack (PostgreSQL + app) that runs `prisma db push` on startup with the lockfile-pinned Prisma CLI bundled in the image; if the push fails (for example the database is unreachable) the error is printed and the container exits non-zero instead of serving without a schema; a push that would lose data is refused too (the container exits non-zero and restarts under compose), so reconcile the schema or migrate manually
 
 ## Prerequisites
 
