@@ -1,0 +1,46 @@
+name: CI Insights Docker
+
+# Builds packages/ci-insights/Dockerfile and asserts the runtime image
+# contract (prisma CLI version equals the lockfile, no devDependency
+# except dotenv shipped). A regression where `npm rm --no-save` without
+# --omit=dev silently shipped the whole devDependency tree stayed green
+# through the npm-only ci.yml. No image is pushed.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - packages/ci-insights/**
+      - .github/workflows/ci-insights-docker.yml
+  pull_request:
+    branches: [master]
+    paths:
+      - packages/ci-insights/**
+      - .github/workflows/ci-insights-docker.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-insights-docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      IMAGE_TAG: ci-insights-ci:${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build image
+        working-directory: packages/ci-insights
+        run: docker build -t "$IMAGE_TAG" .
+
+      - name: Check runtime image contract
+        run: packages/ci-insights/scripts/check-runtime-image.sh "$IMAGE_TAG"
+
+      - name: Clean up image
+        if: always()
+        run: docker rmi -f "$IMAGE_TAG" || true
