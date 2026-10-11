@@ -74,24 +74,27 @@ There are two sync routes. `POST /repos/:owner/:repo/sync` is the onboarding pat
 ```mermaid
 sequenceDiagram
   participant Op as Operator
-  participant R1 as POST /api/v1/repos/:owner/:repo/sync
-  participant R2 as POST /api/v1/sync
-  participant Sch as syncRepo / syncAllRepos
+  participant R1 as POST /repos/<br/>:owner/:repo/sync
+  participant R2 as POST /sync
+  participant Sch as syncRepo /<br/>syncAllRepos
   participant Ing as ingestRepo
-  participant GH as GitHub Actions API
+  participant GH as GitHub<br/>Actions API
   participant DB as PostgreSQL
-  Op->>R1: Authorization: Bearer SYNC_API_KEY
-  Note over R1: 401 unless the key matches, also when SYNC_API_KEY is unset
-  R1->>Ing: defaults: maxRunsPerWorkflow 50, fetchJobs true
-  Op->>R2: Authorization: Bearer SYNC_API_KEY
-  Note over R2: same key check, body.repo must already be tracked (else 404)
-  R2->>Sch: body.repo, or all tracked repos 3 at a time
-  Sch->>Ing: defaults: maxRunsPerWorkflow 100, fetchJobs true
+  alt onboarding
+    Op->>R1: Bearer SYNC_API_KEY
+    Note over R1: 401 unless the key matches<br/>(also when SYNC_API_KEY is unset)
+    R1->>Ing: defaults: maxRunsPerWorkflow 50,<br/>fetchJobs true
+  else re-sync tracked repos
+    Op->>R2: Bearer SYNC_API_KEY
+    Note over R2: same key check, body.repo<br/>must be tracked (else 404)
+    R2->>Sch: body.repo, or all<br/>tracked repos 3 at a time
+    Sch->>Ing: defaults: maxRunsPerWorkflow 100,<br/>fetchJobs true
+  end
   Ing->>DB: upsert repo
   Ing->>GH: list workflows and runs
-  Ing->>DB: skip runs already stored, insert new runs
+  Ing->>DB: upsert workflows, skip stored runs,<br/>insert new runs
   Ing->>GH: list jobs per new run
-  Ing->>DB: insert jobs, set lastSyncedAt
+  Ing->>DB: insert jobs,<br/>set lastSyncedAt
 ```
 
 ## Environment variables

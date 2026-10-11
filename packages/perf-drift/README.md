@@ -72,7 +72,7 @@ An invalid config file is ignored and the built-in defaults are used.
 
 ## Data storage
 
-Metrics are stored in `~/.perf-drift/metrics.db` for the OS user running perf-drift. The database has no notion of a project, so every project tracked by that user shares the same history, baseline, report and reset. Use a separate user account or container per project. On ephemeral CI runners, restore and save `~/.perf-drift` between runs (see the CI example in [docs/reference.md](docs/reference.md#more-usage-patterns)).
+Metrics are stored in `~/.perf-drift/metrics.db` for the OS user running perf-drift. The database has no notion of a project, so every project tracked by that user shares the same history, baseline, report and reset. Use a separate user account or container per project. On ephemeral CI runners, restore and save `~/.perf-drift` between runs (see the CI example in [docs/reference.md](https://github.com/LanNguyenSi/repo-intelligence/blob/master/packages/perf-drift/docs/reference.md#more-usage-patterns)).
 
 ## Documentation
 

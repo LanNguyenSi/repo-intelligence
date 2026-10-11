@@ -77,7 +77,7 @@ Sample output:
     ❌ AI Context 0/10 No AI context files
        → Add .ai/ directory for agent-friendly development
 
-  ──────────────────────────────────────────────────
+──────────────────────────────────────────────────
   9 passed · 2 failed · Grade B
 
   Suggestions:
