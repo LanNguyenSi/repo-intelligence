@@ -6,7 +6,7 @@ A toolkit of independent CLIs and a service that score repository hygiene, PR qu
 
 ## Overview
 
-repo-intelligence turns raw GitHub activity, CI logs, and local repository state into scores and trends: a hygiene checklist for a repo, a PR review score, CI failure/duration trends, and build-time/bundle-size drift over time. Each concern lives in its own package under `packages/`, installable and runnable on its own. See [docs/architecture.md](docs/architecture.md) for how the packages relate to each other and to the sibling products depsight and agent-ops-dashboard.
+repo-intelligence turns raw GitHub activity, GitHub Actions run history, and local repository state into scores and trends: a hygiene checklist for a repo, a PR review score, CI failure/duration trends, and build-time/bundle-size drift over time. Each concern lives in its own package under `packages/`, installable and runnable on its own. See [docs/architecture.md](docs/architecture.md) for how the packages relate to each other and to the sibling products depsight and agent-ops-dashboard.
 
 ## Packages
 
@@ -15,12 +15,12 @@ repo-intelligence turns raw GitHub activity, CI logs, and local repository state
 | [devreview](packages/devreview) | Automated GitHub PR code review agent with intelligent scoring | beta |
 | [ci-insights](packages/ci-insights) | CI/CD trends, failure rates, duration analysis | beta |
 | [repo-health](packages/repo-health) | Repository health checker: scores hygiene, docs, CI, best practices | beta |
-| [repo-dashboard](packages/repo-dashboard) | CLI dashboard for GitHub repositories: PRs, pipelines, issues at a glance | beta |
+| [repo-dashboard](packages/repo-dashboard) | CLI dashboard for the public repositories of a GitHub user or org: PRs, pipelines, issues at a glance | beta |
 | [perf-drift](packages/perf-drift) | Track build times, bundle sizes, and test duration to detect performance regressions | alpha |
 
 ## Quick start
 
-Prerequisites: git and Node.js (18+ for `repo-health` and `repo-dashboard`, 20+ for `perf-drift`, 22+ plus PostgreSQL 16 via Prisma for `ci-insights`; CI uses Node.js 22). The packages are not published to npm. There is no root install; each package is installed from its own directory. Using `repo-health` as an example:
+Prerequisites: git and Node.js (18+ to run `repo-health`, `repo-dashboard` and `devreview`, 20+ for `perf-drift`, 22+ plus PostgreSQL 16 via Prisma for `ci-insights`; running any package's test suite needs Node.js 20.19+ or 22.12+; CI uses Node.js 22). The packages are not published to npm. There is no root install; each package is installed from its own directory. Using `repo-health` as an example:
 
 ```bash
 git clone https://github.com/LanNguyenSi/repo-intelligence.git

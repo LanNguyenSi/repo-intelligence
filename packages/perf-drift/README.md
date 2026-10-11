@@ -4,7 +4,7 @@ CLI that tracks build time, bundle size, and test duration over time, and flags 
 
 ## Overview
 
-Performance regressions creep in gradually: a build that grows from 30 seconds to 5 minutes rarely happens in one commit. perf-drift records those three metrics on every run, stores them in a local SQLite database, and compares the latest run against a baseline you set. It needs no config to get started, and works with any build tool since metrics are recorded manually or via `--auto`/`--run`.
+Performance regressions creep in gradually: a build that grows from 30 seconds to 5 minutes rarely happens in one commit. perf-drift records those three metrics on every run, stores them in a local SQLite database (one per OS user, see Data storage), and compares the latest run against a baseline you set. It needs no config to get started, and works with any build tool since metrics are recorded manually or via `--auto`/`--run`.
 
 ## Key features
 
@@ -42,10 +42,10 @@ drift track --build-time 45.2 --bundle-size 1500000 --test-time 12.3
 # Or auto-detect bundle size and time a build command
 drift track --run "npm run build" --auto
 
-# Set the most recent metric as the baseline
+# Use the most recent metric as the baseline (with --message, a copy of it is stored with that message and counts in reports)
 drift baseline --message "v1.0.0 release"
 
-# Check the latest metric against the baseline (exits 1 on regression > threshold)
+# Check the latest metric against the baseline (exits 1 on regression > threshold; exits 0 with a warning when no baseline or no metric exists)
 drift check --threshold 15
 
 # Show recent history
@@ -69,6 +69,10 @@ A config file is optional; perf-drift works with no config. To override defaults
 - `directories`: directories scanned when auto-detecting bundle size (default `["dist", "build", "out", ".next"]`)
 
 An invalid config file is ignored and the built-in defaults are used.
+
+## Data storage
+
+Metrics are stored in `~/.perf-drift/metrics.db` for the OS user running perf-drift. The database has no notion of a project, so every project tracked by that user shares the same history, baseline, report and reset. Use a separate user account or container per project. On ephemeral CI runners, restore and save `~/.perf-drift` between runs (see the CI example in [docs/reference.md](https://github.com/LanNguyenSi/repo-intelligence/blob/master/packages/perf-drift/docs/reference.md#more-usage-patterns)).
 
 ## Documentation
 

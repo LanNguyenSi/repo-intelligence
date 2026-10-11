@@ -4,29 +4,40 @@ How the repo-intelligence packages relate to each other and to the sibling produ
 
 The five packages split into CLI tools that compute signals directly from a repository or the GitHub API, and a Next.js analytics service (`ci-insights`) that ingests GitHub Actions run history, stores it, and exposes it over an HTTP API.
 
+repo-health reads the local repository. perf-drift reads `.perfdriftrc.json` and build output from the working directory and keeps its history in a per-user SQLite file. repo-dashboard and ci-insights read from the GitHub API; ci-insights stores what it ingests in PostgreSQL. devreview reads `.devreview.json` locally and pull request data and `.ai/` files from GitHub, can be triggered by `pull_request` webhooks, and posts reviews back to GitHub as `APPROVE` or `REQUEST_CHANGES`.
+
+The diagram shows what each package reads and writes.
+
 ```mermaid
 flowchart LR
-  subgraph src ["Data Sources"]
-    GH[("GitHub API")]
-    FS[("Local Filesystem")]
+  subgraph src ["Data sources"]
+    GH[("GitHub<br/>API and webhooks")]
+    FS[("Local filesystem")]
   end
 
-  subgraph computes ["Computes - packages/"]
-    RH["repo-health<br/>packages/repo-health"]
-    DR["devreview<br/>packages/devreview"]
+  subgraph pkgs ["packages/"]
+    CIS["ci-insights<br/>HTTP API /api/v1"]
     RD["repo-dashboard<br/>packages/repo-dashboard"]
+    DR["devreview<br/>packages/devreview"]
     PD["perf-drift<br/>packages/perf-drift"]
-    SQLITE[("SQLite<br/>~/.perf-drift/metrics.db")]
-    CIS["ci-insights<br/>packages/ci-insights"]
-    CIDB[("PostgreSQL<br/>prisma/schema.prisma")]
+    RH["repo-health<br/>packages/repo-health"]
   end
 
-  GH --> DR
+  subgraph store ["Storage"]
+    CIDB[("PostgreSQL<br/>prisma/schema.prisma")]
+    SQLITE[("SQLite<br/>~/.perf-drift/metrics.db")]
+  end
+
+  GH -->|"workflows, runs, jobs"| CIS
   GH --> RD
-  GH --> CIS
+  GH -->|"PR data, .ai/ files"| DR
+  GH -->|"pull_request webhook"| DR
+  DR -->|"review: APPROVE or REQUEST_CHANGES"| GH
+  FS -->|".devreview.json"| DR
+  FS -->|".perfdriftrc.json, build output"| PD
   FS --> RH
-  PD <--> SQLITE
   CIS <--> CIDB
+  PD <--> SQLITE
 ```
 
 ## Relation to depsight and agent-ops-dashboard

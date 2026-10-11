@@ -51,33 +51,38 @@ Sample output:
   Grade: B ████████░░ 8.2/10
 
   📝 Documentation
-    ✅ README        10/10  Comprehensive README (4617 bytes)
-    ✅ License       10/10  License file: LICENSE
-    ❌ Contributing   0/10  No CONTRIBUTING.md
+    ✅ README 10/10 Comprehensive README (4617 bytes)
+    ✅ License 10/10 License file: LICENSE
+    ❌ Contributing Guide 0/10 No CONTRIBUTING.md
        → Add CONTRIBUTING.md for open source projects
 
   ⚙️  Code Quality
-    ✅ .gitignore    10/10  .gitignore is comprehensive
-    ✅ TypeScript    10/10  TypeScript with strict mode ✅
+    ✅ .gitignore 10/10 .gitignore is comprehensive
+    ✅ Env Config 10/10 .env.example exists
+    ✅ TypeScript 10/10 TypeScript with strict mode ✅
 
   🔄 CI/CD
-    ✅ CI Pipeline   10/10  CI configured (GitHub Actions)
+    ✅ CI Pipeline 10/10 CI configured (GitHub Actions)
 
   🧪 Testing
-    ✅ Tests         10/10  Test setup found
+    ✅ Tests 10/10 Test setup found
 
   🔒 Security
-    ✅ Secret Safety 10/10  .env is in .gitignore ✅
+    ✅ Secret Safety 10/10 .env is in .gitignore ✅
 
   🐳 Deployment
-    ✅ Docker        10/10  Dockerfile + Docker Compose ✅
+    ✅ Docker 10/10 Dockerfile + Docker Compose ✅
 
   🤖 AI Context
-    ❌ AI Context     0/10  No AI context files
+    ❌ AI Context 0/10 No AI context files
        → Add .ai/ directory for agent-friendly development
 
-  ──────────────────────────────────────────────────
+──────────────────────────────────────────────────
   9 passed · 2 failed · Grade B
+
+  Suggestions:
+    → Add CONTRIBUTING.md for open source projects
+    → Add .ai/ directory for agent-friendly development
 ```
 
 ## Checks (11 total)
@@ -94,7 +99,7 @@ Sample output:
 | Tests | Testing | Test directory? Test config? Test script? |
 | Secret Safety | Security | .env in .gitignore? |
 | Docker | Deployment | Dockerfile? Docker Compose? |
-| AI Context | AI | .ai/ directory? AGENTS.md, ARCHITECTURE.md? |
+| AI Context | AI | .ai/ with AGENTS.md, ARCHITECTURE.md, TASKS.md, DECISIONS.md (2.5 points each)? Otherwise a root AI_CONTEXT.md (5 points)? |
 
 ## Grading
 
@@ -118,6 +123,8 @@ npm install
 npm run build
 npm test
 ```
+
+Running the tests requires Node.js 20.19+ or 22.12+.
 
 ## License
 
