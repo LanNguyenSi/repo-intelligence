@@ -1,12 +1,12 @@
 # repo-dashboard
 
-Terminal dashboard for a GitHub account's repositories: see open PRs, pipeline status, and recent activity at a glance.
+Terminal dashboard for the public repositories of a GitHub user or organization: see open PRs, pipeline status, and recent activity at a glance.
 
 > Looking for a web UI? See [agent-ops-dashboard](https://github.com/LanNguyenSi/agent-ops-dashboard), the browser-based version with a live agent feed, state store, and activity timeline.
 
 ## Overview
 
-repo-dashboard queries the GitHub API for a given user or org and prints a one-screen summary: repositories, open pull requests, and CI pipeline status, with a closing line of what needs attention. It supports JSON output for scripting or feeding into other tools.
+repo-dashboard queries the GitHub API for the public repositories of a given user or org and prints a one-screen summary: repositories, open pull requests, and CI pipeline status, with a closing line of what needs attention. It supports JSON output for scripting or feeding into other tools.
 
 ## Install / quick start
 
@@ -55,7 +55,6 @@ Sample output:
      AI-powered log analytics and debugging for self-hosted teams
   🔓 event-booking-system TypeScript  12h ago
      Full-stack event booking platform
-  🔒 web-app —  1d ago
 
   Open Pull Requests (2)
 
@@ -87,6 +86,10 @@ Sample output:
 | `--ci` | Show only pipelines | false |
 | `--json` | JSON output | false |
 
+### Limits
+
+The dashboard lists up to 100 public repositories (GitHub's `GET /users/{owner}/repos` returns public repositories only). Open PRs are read from the first 30 of them, up to 10 each, and the latest workflow run from the first 20. Repositories that return an error are skipped without a message. `--repos` limits only the repository list in the full view; the PR and pipeline sections and `--json` output are not affected.
+
 ## Documentation
 
 - [Repository architecture](https://github.com/LanNguyenSi/repo-intelligence/blob/master/docs/architecture.md)
@@ -98,6 +101,8 @@ npm install
 npm run build
 npm test
 ```
+
+Running the tests requires Node.js 20.19+ or 22.12+.
 
 ## License
 

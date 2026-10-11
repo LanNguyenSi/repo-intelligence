@@ -2,9 +2,9 @@
 
 ## Supported Versions
 
-Active development is on `master`. Sub-packages may publish independently; the latest published release of each is supported.
+Active development is on `master`. The packages are not published to a package registry; fixes land on `master`, which is the only supported version.
 
-repo-intelligence ingests dependency data, GitHub metadata, and CI logs. Vulnerabilities (GitHub-token leak, CVE-data injection, SSRF in fetchers, scoring tampering) are treated as serious.
+repo-intelligence reads GitHub metadata (pull requests and their files, GitHub Actions workflow runs and jobs) and local repository files. Vulnerabilities such as a GitHub-token leak, a webhook signature bypass in devreview, unauthorized access to ci-insights data or sync endpoints, or scoring tampering are treated as serious.
 
 ## Reporting a Vulnerability
 
