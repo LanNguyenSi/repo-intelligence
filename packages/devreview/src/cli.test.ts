@@ -7,12 +7,38 @@
 // ============================================================================
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
+
+const { reviewerCtor, loadConfigMock } = vi.hoisted(() => ({
+  reviewerCtor: vi.fn(),
+  loadConfigMock: vi.fn(),
+}));
+
+vi.mock('./reviewer/reviewer.js', () => ({
+  Reviewer: class {
+    constructor(token: string, config: unknown) {
+      reviewerCtor(token, config);
+    }
+    async reviewForTerminal() {
+      return 'terminal output';
+    }
+  },
+}));
+
+vi.mock('./config.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./config.js')>()),
+  loadConfig: loadConfigMock,
+}));
+
 import {
   parsePullRequestUrl,
   parseScoreThreshold,
   parsePort,
   requireGitHubToken,
+  applyMinScoreFlag,
+  program,
 } from './cli.js';
+import { mergeConfig } from './config.js';
+import { DEFAULT_CONFIG } from './types.js';
 
 afterEach(() => {
   delete process.env.GITHUB_TOKEN;
@@ -102,5 +128,60 @@ describe('requireGitHubToken', () => {
   it('throws when no token is provided and GITHUB_TOKEN is unset', () => {
     delete process.env.GITHUB_TOKEN;
     expect(() => requireGitHubToken()).toThrow('GitHub token required');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyMinScoreFlag: flag > config file > built-in default
+// ---------------------------------------------------------------------------
+describe('applyMinScoreFlag', () => {
+  it('uses the built-in default when neither flag nor config set a score', () => {
+    expect(applyMinScoreFlag(DEFAULT_CONFIG, undefined).rules.minScore).toBe(7);
+  });
+
+  it('keeps rules.minScore from the loaded config when no flag is given', () => {
+    const config = mergeConfig({ rules: { minScore: 4 } });
+    expect(applyMinScoreFlag(config, undefined).rules.minScore).toBe(4);
+  });
+
+  it('lets the flag override the config value', () => {
+    const config = mergeConfig({ rules: { minScore: 4 } });
+    expect(applyMinScoreFlag(config, '9').rules.minScore).toBe(9);
+  });
+
+  it('rejects an invalid flag value', () => {
+    expect(() => applyMinScoreFlag(DEFAULT_CONFIG, '11')).toThrow('between 0 and 10');
+  });
+
+  it('rejects an out-of-range rules.minScore from the config file', () => {
+    const config = mergeConfig({ rules: { minScore: 15 } });
+    expect(() => applyMinScoreFlag(config, undefined)).toThrow(
+      '.devreview.json rules.minScore',
+    );
+  });
+
+  it('accepts a flag that overrides an invalid config value', () => {
+    const config = mergeConfig({ rules: { minScore: 15 } });
+    expect(applyMinScoreFlag(config, '6').rules.minScore).toBe(6);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// review command: option parsing through commander
+// ---------------------------------------------------------------------------
+describe('review command', () => {
+  it('passes rules.minScore from the loaded config to the Reviewer when --min-score is absent', async () => {
+    reviewerCtor.mockClear();
+    loadConfigMock.mockResolvedValue(mergeConfig({ rules: { minScore: 4 } }));
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await program.parseAsync(
+      ['review', 'https://github.com/acme/rocket/pull/1', '--token', 't'],
+      { from: 'user' },
+    );
+
+    log.mockRestore();
+    expect(reviewerCtor).toHaveBeenCalledTimes(1);
+    expect(reviewerCtor.mock.calls[0][1].rules.minScore).toBe(4);
   });
 });

@@ -143,7 +143,7 @@ model JobRun {
 }
 
 // ── Plugin/MCP API Tokens ────────────────────────────────────
-// Enables external integrations (MCP, agent-ops, etc.)
+// Reserved for external integrations; no route uses this model yet
 
 model ApiToken {
   id          String    @id @default(cuid())

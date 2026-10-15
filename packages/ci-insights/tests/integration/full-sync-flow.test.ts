@@ -141,7 +141,7 @@ describe("Full sync flow", () => {
     expect(first.runsIngested).toBe(1);
 
     // Second sync: already stored
-    mp.workflowRun.findUnique.mockResolvedValue({ id: "run-1" });
+    mp.workflowRun.findUnique.mockResolvedValue({ id: "run-1", status: "completed" });
     const second = await ingestRepo("owner", "repo", { token: "test", fetchJobs: false });
     expect(second.runsIngested).toBe(0);
     expect(second.runsSkipped).toBe(1);

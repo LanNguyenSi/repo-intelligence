@@ -1,4 +1,4 @@
-.PHONY: dev dev-down dev-logs db db-down db-reset migrate seed generate install lint typecheck test test-watch build clean
+.PHONY: dev dev-down dev-logs db db-down db-reset migrate generate install lint typecheck test test-watch build clean
 
 # ── Local Development ────────────────────────────────────────
 

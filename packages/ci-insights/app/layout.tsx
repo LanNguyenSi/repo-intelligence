@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ci-insights",
-  description: "CI/CD Intelligence Dashboard — GitHub Actions analytics",
+  description: "GitHub Actions analytics API: fail rates, build times, flaky jobs",
 };
 
 export default function RootLayout({

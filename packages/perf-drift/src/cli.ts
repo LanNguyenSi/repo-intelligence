@@ -28,7 +28,7 @@ program
   .option("-s, --bundle-size <bytes>", "Bundle size in bytes", (v) => validatePositiveInt(v, "--bundle-size"))
   .option("-t, --test-time <seconds>", "Test duration in seconds", (v) => validatePositiveNumber(v, "--test-time"))
   .option("-m, --message <text>", "Optional message/commit hash")
-  .option("--auto", "Auto-detect metrics from common tools")
+  .option("--auto", "Auto-detect the bundle size from build output")
   .option("--run <command>", "Run a command and measure its execution time as build time")
   .action(async (options) => {
     try {

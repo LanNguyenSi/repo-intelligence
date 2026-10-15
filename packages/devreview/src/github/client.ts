@@ -54,7 +54,8 @@ export class GitHubClient {
   }
 
   /**
-   * Post a review comment on a PR
+   * Submit a review on a PR. The event is APPROVE, REQUEST_CHANGES or COMMENT;
+   * GitHub rejects APPROVE from the PR author.
    */
   async postReview(
     owner: string,
@@ -69,23 +70,6 @@ export class GitHubClient {
       pull_number: prNumber,
       body,
       event,
-    });
-  }
-
-  /**
-   * Post a comment on a PR (simpler than review)
-   */
-  async postComment(
-    owner: string,
-    repo: string,
-    prNumber: number,
-    body: string,
-  ): Promise<void> {
-    await this.octokit.issues.createComment({
-      owner,
-      repo,
-      issue_number: prNumber,
-      body,
     });
   }
 
