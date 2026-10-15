@@ -39,10 +39,11 @@ export GITHUB_TOKEN=your-token
 # Review a PR in the terminal
 devreview review https://github.com/owner/repo/pull/123
 
-# Post the review to GitHub (APPROVE at or above --min-score, REQUEST_CHANGES below)
+# Post the review to GitHub (APPROVE at or above the minimum score, REQUEST_CHANGES below)
 devreview review https://github.com/owner/repo/pull/123 --comment
 
-# With --comment: approve at or above this score, request changes below it (0-10, default 7)
+# With --comment: approve at or above this score, request changes below it (0-10).
+# Without the flag, rules.minScore from .devreview.json applies, else 7
 devreview review https://github.com/owner/repo/pull/123 --comment --min-score 8
 
 # Show only the score object

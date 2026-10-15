@@ -4,7 +4,7 @@ export default function Home() {
       <div className="max-w-2xl w-full text-center">
         <h1 className="text-4xl font-bold mb-4">ci-insights</h1>
         <p className="text-gray-400 text-lg mb-8">
-          CI/CD Intelligence Dashboard — GitHub Actions analytics
+          GitHub Actions analytics API service (no web dashboard)
         </p>
         <div className="grid grid-cols-2 gap-4 text-left">
           {[
@@ -19,7 +19,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <p className="mt-8 text-sm text-gray-600">Setting up... 🔧</p>
+        <p className="mt-8 text-sm text-gray-600">Query the analytics endpoints under /api/v1.</p>
       </div>
     </main>
   );

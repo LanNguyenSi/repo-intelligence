@@ -46,7 +46,11 @@ Create a `.devreview.json` in the working directory to customize scoring and rev
 }
 ```
 
-`rules.minScore` decides between APPROVE and REQUEST_CHANGES when a review is posted. `devreview server` and the container use the value from this file. `devreview review` always uses its `--min-score` flag (default 7) instead, and without `--comment` the value has no effect.
+`rules.minScore` decides between APPROVE and REQUEST_CHANGES when a review is posted, for `devreview review --comment` and for the webhook server. `devreview review --comment --min-score <n>` overrides the file value for that run. Without the flag, `devreview review` uses `rules.minScore` from the file, and the built-in default of 7 when the file or the key is absent. Without `--comment` the value has no effect.
+
+## GitHub token requirements
+
+Submitting a review (`--comment` and the webhook server) needs a token that may write pull requests: the fine-grained permission "Pull requests: write" on the repository (see [permissions required for fine-grained personal access tokens](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens), endpoint `POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews`), or the `repo` scope for a classic token. Terminal output and `devreview score` only read the pull request. GitHub does not let authors approve their own pull requests ([reviewing proposed changes](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests/reviewing-proposed-changes-in-a-pull-request)), so an APPROVE review from the account that opened the pull request is rejected: `devreview review --comment` exits with an error and the webhook server logs it. Use a token of a different account (for example a bot) to review pull requests you open yourself.
 
 `ignore` replaces the built-in list (`dist/**`, `build/**`, `node_modules/**`, `*.lock`, `package-lock.json`, `yarn.lock`), so repeat any of those you still want. Patterns match the whole file path from the repository root: `*` and `?` do not cross `/`, `**` does. `rules` and `scoring` are merged with the defaults, so partial objects are fine.
 

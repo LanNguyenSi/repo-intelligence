@@ -11,10 +11,11 @@ import { loadConfig, mergeConfig } from './config.js';
 import { isEntryPoint } from './is-entry-point.js';
 import { Reviewer } from './reviewer/reviewer.js';
 import { createWebhookServer } from './server/webhook.js';
+import type { ReviewConfig } from './types.js';
 
 type ReviewCommandOptions = {
   comment?: boolean;
-  minScore: string;
+  minScore?: string;
   token?: string;
   config?: string;
 };
@@ -42,8 +43,11 @@ program
   .command('review')
   .description('Review a GitHub PR')
   .argument('<pr-url>', 'GitHub PR URL (e.g., https://github.com/owner/repo/pull/1)')
-  .option('--comment', 'Post review as a GitHub review')
-  .option('--min-score <score>', 'Minimum acceptable score before approval', '7')
+  .option('--comment', 'Submit the result as a GitHub review (APPROVE or REQUEST_CHANGES)')
+  .option(
+    '--min-score <score>',
+    'With --comment: score at or above which the review approves (default: rules.minScore from .devreview.json, else 7)',
+  )
   .option('--token <token>', 'GitHub token (or set GITHUB_TOKEN env)')
   .option('--config <path>', 'Path to a .devreview.json file')
   .action(async (prUrl: string, options: ReviewCommandOptions) => {
@@ -51,20 +55,13 @@ program
       const token = requireGitHubToken(options.token);
       const { owner, repo, prNumber } = parsePullRequestUrl(prUrl);
       const baseConfig = await loadConfig(options.config);
-      const minScore = parseScoreThreshold(options.minScore);
-      const config = mergeConfig({
-        ...baseConfig,
-        rules: {
-          ...baseConfig.rules,
-          minScore,
-        },
-      });
+      const config = applyMinScoreFlag(baseConfig, options.minScore);
       const reviewer = new Reviewer(token, config);
 
       if (options.comment) {
-        console.log(`Reviewing and commenting on ${owner}/${repo}#${prNumber}...`);
+        console.log(`Reviewing and submitting a review on ${owner}/${repo}#${prNumber}...`);
         const result = await reviewer.reviewAndComment(owner, repo, prNumber);
-        console.log(`\n  Review posted. Score: ${result.score.overall}/10\n`);
+        console.log(`\n  Review submitted. Score: ${result.score.overall}/10\n`);
         return;
       }
 
@@ -155,6 +152,24 @@ export function parseScoreThreshold(value: string): number {
   }
 
   return score;
+}
+
+/**
+ * Precedence: --min-score flag, then rules.minScore from the loaded config
+ * (which already falls back to the built-in default).
+ */
+export function applyMinScoreFlag(baseConfig: ReviewConfig, minScoreFlag?: string): ReviewConfig {
+  if (minScoreFlag === undefined) {
+    return baseConfig;
+  }
+
+  return mergeConfig({
+    ...baseConfig,
+    rules: {
+      ...baseConfig.rules,
+      minScore: parseScoreThreshold(minScoreFlag),
+    },
+  });
 }
 
 export function parsePort(value: string): number {

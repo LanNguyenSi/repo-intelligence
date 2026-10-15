@@ -13,9 +13,11 @@ vi.mock("@/lib/prisma", () => ({
     workflowRun: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
     jobRun: {
       create: vi.fn(),
+      upsert: vi.fn(),
     },
   },
 }));
@@ -34,8 +36,12 @@ import { listWorkflows, listWorkflowRuns, listJobsForRun } from "@/lib/github/wo
 const mockPrisma = prisma as unknown as {
   repo: { upsert: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
   workflow: { upsert: ReturnType<typeof vi.fn> };
-  workflowRun: { findUnique: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
-  jobRun: { create: ReturnType<typeof vi.fn> };
+  workflowRun: {
+    findUnique: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+  jobRun: { create: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn> };
 };
 
 const mockListWorkflows = listWorkflows as ReturnType<typeof vi.fn>;
@@ -98,11 +104,53 @@ describe("ingestRepo", () => {
   });
 
   it("skips already-stored runs", async () => {
-    mockPrisma.workflowRun.findUnique.mockResolvedValue({ id: "existing-run" });
+    mockPrisma.workflowRun.findUnique.mockResolvedValue({ id: "existing-run", status: "completed" });
     const result = await ingestRepo("owner", "repo", { token: "test" });
     expect(result.runsSkipped).toBe(1);
     expect(result.runsIngested).toBe(0);
     expect(mockPrisma.workflowRun.create).not.toHaveBeenCalled();
+    expect(mockPrisma.workflowRun.update).not.toHaveBeenCalled();
+    expect(mockListJobs).not.toHaveBeenCalled();
+  });
+
+  it("refreshes a stored run that was not completed and re-fetches its jobs", async () => {
+    mockPrisma.workflowRun.findUnique.mockResolvedValue({ id: "existing-run", status: "in_progress" });
+    const result = await ingestRepo("owner", "repo", { token: "test" });
+    expect(mockPrisma.workflowRun.create).not.toHaveBeenCalled();
+    expect(mockPrisma.workflowRun.update).toHaveBeenCalledWith({
+      where: { id: "existing-run" },
+      data: expect.objectContaining({
+        status: "completed",
+        conclusion: "success",
+        durationMs: 300000,
+        runUpdatedAt: new Date("2026-03-28T10:05:00Z"),
+      }),
+    });
+    expect(mockListJobs).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.jobRun.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { githubJobId: BigInt(2001) } })
+    );
+    expect(result.runsIngested).toBe(0);
+    expect(result.runsSkipped).toBe(0);
+    expect(result.jobsIngested).toBe(1);
+  });
+
+  it("refreshes a completed-since run without fetching jobs when fetchJobs=false", async () => {
+    mockPrisma.workflowRun.findUnique.mockResolvedValue({ id: "existing-run", status: "in_progress" });
+    await ingestRepo("owner", "repo", { token: "test", fetchJobs: false });
+    expect(mockPrisma.workflowRun.update).toHaveBeenCalledTimes(1);
+    expect(mockListJobs).not.toHaveBeenCalled();
+    expect(mockPrisma.jobRun.upsert).not.toHaveBeenCalled();
+  });
+
+  it("updates a still-unfinished stored run without fetching jobs", async () => {
+    mockPrisma.workflowRun.findUnique.mockResolvedValue({ id: "existing-run", status: "queued" });
+    mockListRuns.mockResolvedValue([{ ...fakeRun, status: "in_progress", conclusion: null }]);
+    await ingestRepo("owner", "repo", { token: "test" });
+    expect(mockPrisma.workflowRun.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: "in_progress", conclusion: null }) })
+    );
+    expect(mockListJobs).not.toHaveBeenCalled();
   });
 
   it("records error when workflow list fails", async () => {

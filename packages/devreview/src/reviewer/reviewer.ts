@@ -42,7 +42,8 @@ export class Reviewer {
   }
 
   /**
-   * Review and post comment on GitHub
+   * Review and submit a GitHub review: APPROVE at or above rules.minScore,
+   * REQUEST_CHANGES below it
    */
   async reviewAndComment(owner: string, repo: string, prNumber: number): Promise<ReviewResult> {
     const { context, score, result } = await this.prepareReview(owner, repo, prNumber);

@@ -12,7 +12,10 @@ import {
   parseScoreThreshold,
   parsePort,
   requireGitHubToken,
+  applyMinScoreFlag,
 } from './cli.js';
+import { mergeConfig } from './config.js';
+import { DEFAULT_CONFIG } from './types.js';
 
 afterEach(() => {
   delete process.env.GITHUB_TOKEN;
@@ -102,5 +105,28 @@ describe('requireGitHubToken', () => {
   it('throws when no token is provided and GITHUB_TOKEN is unset', () => {
     delete process.env.GITHUB_TOKEN;
     expect(() => requireGitHubToken()).toThrow('GitHub token required');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyMinScoreFlag: flag > config file > built-in default
+// ---------------------------------------------------------------------------
+describe('applyMinScoreFlag', () => {
+  it('uses the built-in default when neither flag nor config set a score', () => {
+    expect(applyMinScoreFlag(DEFAULT_CONFIG, undefined).rules.minScore).toBe(7);
+  });
+
+  it('keeps rules.minScore from the loaded config when no flag is given', () => {
+    const config = mergeConfig({ rules: { minScore: 4 } });
+    expect(applyMinScoreFlag(config, undefined).rules.minScore).toBe(4);
+  });
+
+  it('lets the flag override the config value', () => {
+    const config = mergeConfig({ rules: { minScore: 4 } });
+    expect(applyMinScoreFlag(config, '9').rules.minScore).toBe(9);
+  });
+
+  it('rejects an invalid flag value', () => {
+    expect(() => applyMinScoreFlag(DEFAULT_CONFIG, '11')).toThrow('between 0 and 10');
   });
 });
