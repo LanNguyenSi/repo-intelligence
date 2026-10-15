@@ -124,6 +124,7 @@ describe("ingestRepo", () => {
         conclusion: "success",
         durationMs: 300000,
         runUpdatedAt: new Date("2026-03-28T10:05:00Z"),
+        runStartedAt: new Date("2026-03-28T10:00:00Z"),
       }),
     });
     expect(mockListJobs).toHaveBeenCalledTimes(1);

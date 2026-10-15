@@ -8,7 +8,7 @@ ci-insights ingests GitHub Actions workflow run history via the GitHub API, stor
 
 ## Key features
 
-- Ingestion of repos, workflows, and runs from the GitHub Actions API; a stored run that was still queued or in progress is refreshed on later syncs (status, conclusion, duration) until it completes, and its jobs are re-fetched once when it completes, as long as the run is still within the listed window (`maxRunsPerWorkflow`)
+- Ingestion of repos, workflows, and runs from the GitHub Actions API; a stored run that was still queued or in progress is refreshed on later syncs (status, conclusion, duration) until it completes, and its jobs are re-fetched once, on the sync that first sees it completed, only if that sync fetches jobs (`fetchJobs` not false), the jobs call succeeds, and the run is still inside the `since` / `maxRunsPerWorkflow` window of that sync
 - Analytics: fail rate, P50/P95 build times, flaky job detection (SHA-retry and high-fail-rate heuristics), longest-running jobs, cross-repo overview
 - On-demand sync of all tracked repos (`POST /api/v1/sync`), three repos at a time. Nothing syncs on a timer, so call the endpoint from cron or a scheduled CI job to keep data current.
 - Docker Compose stack (PostgreSQL + app) that runs `prisma db push` on startup with the lockfile-pinned Prisma CLI bundled in the image; if the push fails (for example the database is unreachable) the error is printed and the container exits non-zero instead of serving without a schema; a push that would lose data is refused too (the container exits non-zero and restarts under compose), so reconcile the schema or migrate manually

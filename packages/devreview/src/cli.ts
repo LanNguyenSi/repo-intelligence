@@ -32,7 +32,7 @@ type ServerCommandOptions = {
   config?: string;
 };
 
-const program = new Command();
+export const program = new Command();
 
 program
   .name('devreview')
@@ -156,10 +156,18 @@ export function parseScoreThreshold(value: string): number {
 
 /**
  * Precedence: --min-score flag, then rules.minScore from the loaded config
- * (which already falls back to the built-in default).
+ * (which already falls back to the built-in default). The config value gets
+ * the same 0-10 validation as the flag.
  */
 export function applyMinScoreFlag(baseConfig: ReviewConfig, minScoreFlag?: string): ReviewConfig {
   if (minScoreFlag === undefined) {
+    try {
+      parseScoreThreshold(String(baseConfig.rules.minScore));
+    } catch {
+      throw new Error(
+        `Invalid .devreview.json rules.minScore: ${String(baseConfig.rules.minScore)} (must be a number between 0 and 10)`,
+      );
+    }
     return baseConfig;
   }
 

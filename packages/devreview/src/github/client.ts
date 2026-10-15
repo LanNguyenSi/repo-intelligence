@@ -55,7 +55,7 @@ export class GitHubClient {
 
   /**
    * Submit a review on a PR. The event is APPROVE, REQUEST_CHANGES or COMMENT;
-   * GitHub rejects APPROVE and REQUEST_CHANGES from the PR author.
+   * GitHub rejects APPROVE from the PR author.
    */
   async postReview(
     owner: string,
