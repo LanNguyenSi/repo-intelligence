@@ -38,6 +38,15 @@ jobs:
           cache: npm
           cache-dependency-path: packages/${{ matrix.package }}/package-lock.json
 
+      - name: Font guard (no next/font/google)
+        run: |
+          set +e
+          grep -rn --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' --include='*.mjs' --include='*.cjs' --include='*.mts' --include='*.cts' --exclude-dir=node_modules --exclude-dir=.next "next/font/google" .
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then echo "next/font/google is not allowed, vendor the font (see the fonts README)"; exit 1; fi
+          if [ "$rc" -ne 1 ]; then echo "font guard: grep failed with exit $rc"; exit 1; fi
+
       - name: Install
         run: npm ci --no-audit --no-fund
 
