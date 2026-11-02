@@ -1,6 +1,5 @@
-# The node:22-alpine tag is kept in front of the digest so Dependabot's
-# docker ecosystem can refresh the digest for that tag; see
-# .github/dependabot.yml.
+# The node:22-alpine tag is kept in front of the digest so Renovate can
+# refresh the digest for that tag (renovate.json, shared preset).
 FROM node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
